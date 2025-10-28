@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+  <link href="assets/dashboard.css" rel="stylesheet">
+
+  <script src="https://cdn.plot.ly/plotly-3.0.1.min.js" charset="utf-8"></script>
+  <script src="assets/dashboard.js" defer></script>
+
+  <title>Model bias and uncertainty for EURO-CORDEX CMIP5</title>
+</head>
+<body>
+    <div class="header">
+        <div class="links">
+            <a href="https://www.climaax.eu"><img src="assets/climaax.png" alt="CLIMAAX"></a>
+        </div>
+        <div class="search">
+            <div id="dashboard-search">
+                <input type="text" id="dashboard-search-input" placeholder="select a region to see details">
+                <div id="dashboard-search-dropdown" style="display: none;">
+                    <div id="dashboard-search-results"></div>
+                </div>
+            </div>
+        </div>
+        <div class="links">
+            <a href="https://github.com/climaax/dashboards/bias-uncertainty"><img src="assets/github.svg" alt="GitHub"></a>
+        </div>
+    </div>
+
+    <div id="dashboard">
+        <div id="dashboard-map"></div>
+        <div id="dashboard-models">
+        <fieldset id="dashboard-controls">
+            <legend>Settings</legend>
+            <select id="dashboard-variable"></select>
+            <select id="dashboard-operator"></select>
+            <select id="dashboard-reference"></select>
+            <label title="Let the colorbar range adjust to the data. Avoids clipping of data but removes comparability between different maps for the same variable.">
+                <input type="checkbox" id="dashboard-autoscale">
+                autoscale colorbar
+            </label>
+        </fieldset>
+        </div>
+    </div>
+
+    <div class="details" id="dashboard-details-anchor">
+        <div>
+            <h1 id="dashboard-title">no selection</h1>
+            <p>
+                Download data for <span id="dashboard-latin-name"></span> (<span id="dashboard-nuts-id"></span>) as:
+                <a id="dashboard-export-json">JSON</a>
+            </p>
+        </div>
+
+        <div class="side-by-side">
+            <div class="side-text">
+                <h2>Model Bias</h2>
+                <p>
+                    The bias represents the difference between the observed climate and the model representation over the historical record.
+                </p>
+                <p>
+                    Here, bias is calculated by comparing the observed values and the corresponding ones simulated by climate models from 1971 to 2000.
+                    For temperature, the observed values are simply subtracted from the model estimations.
+                    For precipitation, data from both sources is first aggregated as the annual cumulative rainfall, then the bias is computed as a percentage difference.
+                    Bias is calculated for individual grid points at the climate model resolution (i.e., ≃11km) then spatially aggregated to the NUTS2 level by taking the median for each region.
+                </p>
+                <p>
+                    The bias calculation is available for all the EURO-CORDEX regional climate models used in the CLIMAAX workflows.
+                    The <a href="https://www.ecad.eu/download/ensembles/download.php">EOBS</a> and <a href="https://www.ecmwf.int/en/forecasts/dataset/ecmwf-reanalysis-v5">ERA5 reanalysis</a> datasets are used as sources for the observed climate.
+                    The user is referred to <a href="https://doi.org/10.1029/2019JD032344">Vautard et al. (2021)</a> for further reading on EURO-CORDEX bias.
+                </p>
+            </div>
+            <div id="dashboard-bias" class="side-plot"></div>
+        </div>
+        <div class="note">
+            <h3>Models with the smallest biases against <span id="dashboard-details-text-ref"></span></h3>
+            <p><label><input type="checkbox" id="dashboard-details-annotate-x" title="highlight in plot"> <span id="dashboard-details-text-x"></span></label></p>
+            <p><label><input type="checkbox" id="dashboard-details-annotate-y" title="highlight in plot"> <span id="dashboard-details-text-y"></span></label></p>
+        </div>
+
+        <div class="side-by-side">
+            <div>
+                <h2>Model uncertainty</h2>
+                <p>Coming soon...</p>
+            </div>
+        </div>
+
+        <!--
+        <div class="side-by-side">
+            <div class="side-text">
+                <h2>Uncertainty: Temperature</h2>
+                <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+                <p>TODO: data shown is random.</p>
+            </div>
+            <div id="dashboard-uncertainty-tas" class="side-plot"></div>
+        </div>
+
+        <div class="side-by-side">
+            <div class="side-text">
+                <h2>Uncertainty: Precipitation</h2>
+                <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+                <p>TODO: data shown is random.</p>
+            </div>
+            <div id="dashboard-uncertainty-pr" class="side-plot"></div>
+        </div>
+        -->
+    </div>
+    <div class="footer">
+        <p><a href="javascript:document.getElementById('dashboard-search').scrollIntoView({behavior:'smooth'});">back to top</a></p>
+    </div>
+
+</body>
+</html>

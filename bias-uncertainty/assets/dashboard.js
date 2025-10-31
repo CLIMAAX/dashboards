@@ -241,7 +241,7 @@ async function runBiasDashboard() {
             const out = {
                 model: model,
                 reference: reference,
-                //rank: biasData[nutsID].rank[i]
+                rank: biasData[nutsID].rank[i]
             };
             for (const variable of VARIABLES) {
                 out[variable] = {
@@ -482,8 +482,8 @@ async function runBiasDashboard() {
             DOM.getNode("title").textContent = "no selection";
             DOM.getNode("latin-name").textContent = "n/a";
             DOM.getNode("nuts-id").textContent = "n/a";
-            //DOM.getNode("details-rec-title").textContent = "Model recommendation";
-            //DOM.getNode("details-rec-text").textContent = "no selection";
+            DOM.getNode("details-rec-title").textContent = "Model recommendation";
+            DOM.getNode("details-rec-text").textContent = "no selection";
             return;
         }
         const promises = [];
@@ -497,19 +497,19 @@ async function runBiasDashboard() {
             visible: visible,
         };
         // Dynamic description/interpretation of bias plot
-        //let recModel = null;
-        //selection.bias.forEach((model, i) => {
-        //    if (visible[i] && (recModel == null || model.rank < recModel.rank)) {
-        //        recModel = model;
-        //    }
-        //});
-        //if (recModel == null) {
-        //    DOM.getNode("details-rec-title").textContent = "Model recommendation";
-        //    DOM.getNode("details-rec-text").textContent = "no data available";
-        //} else {
-        //    DOM.getNode("details-rec-title").textContent = `Model recommendation based on bias against ${reference.toUpperCase()}`;
-        //    DOM.getNode("details-rec-text").textContent = `${recModel.model.gcm} ${recModel.model.rcm} ${recModel.model.ens}`;
-        //}
+        let recModel = null;
+        selection.bias.forEach((model, i) => {
+            if (visible[i] && (recModel == null || model.rank < recModel.rank)) {
+                recModel = model;
+            }
+        });
+        if (recModel == null) {
+            DOM.getNode("details-rec-title").textContent = "Model recommendation";
+            DOM.getNode("details-rec-text").textContent = "no data available";
+        } else {
+            DOM.getNode("details-rec-title").textContent = `Model recommendation based on bias against ${reference.toUpperCase()}`;
+            DOM.getNode("details-rec-text").textContent = `${recModel.model.gcm} ${recModel.model.rcm} ${recModel.model.ens}`;
+        }
         const layoutBias = {
             title: {text: `Model bias against ${reference.toUpperCase()}: ${selection.NUTS_NAME} (${nutsID})`}
         };

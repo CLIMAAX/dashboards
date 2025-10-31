@@ -101,7 +101,7 @@ const BIAS_VAR_Y = "tas";
 const BIAS_GUARANTEE_XRANGE = [-10, 10];
 const BIAS_GUARANTEE_YRANGE = [-0.25, 0.25];
 
-const MODEL_HOVER_TEMPLATE = (
+const BIAS_HOVER_TEMPLATE = (
     "<b>GCM:</b> %{text.gcm}<br>" +
     "<b>RCM:</b> %{text.rcm}<br>" +
     "<b>ENS:</b> %{text.ens}<br>" +
@@ -165,13 +165,26 @@ function closestToZero(xs) {
 }
 
 async function runBiasDashboard() {
-    //const Plotly = require(["Plotly"];
 
-    const CORDEX = await fetch("data/eurocordex.geojson").then(response => response.json());
-    const NUTS = await fetch("data/regions.geojson").then(response => response.json());
-    const DATA = await fetch("data/data.json").then(response => response.json());
-    const MODELS = DATA.models;
-    const ATTRS = DATA.attrs;
+    // Cached data retrieval
+    const _CACHE = new Map();
+    async function fetchData(filename) {
+        if (!_CACHE.has(filename)) {
+            const response = await fetch(`data/${filename}`);
+            _CACHE.set(filename, await response.json());
+        }
+        return _CACHE.get(filename);
+    }
+
+    function getBiasData(ref) {
+        return fetchData(`bias-${ref}.json`);
+    }
+
+    const CORDEX = await fetchData("eurocordex.geojson");
+    const NUTS = await fetchData("regions.geojson");
+    const META = await fetchData("metadata.json");
+    const MODELS = META.models;
+    const ATTRS = META.attrs;
 
     function getNutsFeature(nuts_id) {
         for (const feature of NUTS.features) {
@@ -214,7 +227,7 @@ async function runBiasDashboard() {
     // or null if no region is selected
     let selection = null;
 
-    function selectData(nutsID) {
+    async function selectData(nutsID) {
         // Clear selection, return dummy promise to start .then chain
         if (nutsID == null) {
             selection = null;
@@ -222,17 +235,21 @@ async function runBiasDashboard() {
         }
         const nuts = getNutsFeature(nutsID);
         // Extract data based on selection
+        const reference = DOM.getNode("reference").value;
+        const biasData = await getBiasData(reference);
         const bias = MODELS.map((model, i) => {
-            const out = {model: model};
+            const out = {
+                model: model,
+                reference: reference,
+                //rank: biasData[nutsID].rank[i]
+            };
             for (const variable of VARIABLES) {
                 out[variable] = {
+                    value: biasData[nutsID][variable][i],
                     name: ATTRS[variable].name,
                     unit: ATTRS[variable].bias.unit,
-                    period: ATTRS[variable].bias.period
+                    period: ATTRS[variable].bias.period,
                 };
-                for (const ref of REFERENCES) {
-                    out[variable][ref] = DATA[variable].bias[ref][nutsID][i];
-                }
             }
             return out;
         });
@@ -245,6 +262,12 @@ async function runBiasDashboard() {
         };
         // Allow direct links to specific regions
         window.location.hash = nutsID;
+    }
+
+    async function refreshData() {
+        if (selection != null) {
+            return selectData(selection.NUTS_ID);
+        }
     }
 
     // Map functions
@@ -334,13 +357,13 @@ async function runBiasDashboard() {
         return values.length == 0 ? NaN : OPERATORS[select.value](values);
     }
 
-    function updateMapValues() {
+    async function updateMapValues() {
         const mapDiv = DOM.getNode("map");
         const selectedVar = DOM.getNode("variable").value;
-        const selectedRef = DOM.getNode("reference").value;
+        const bias = await getBiasData(DOM.getNode("reference").value);
         const data = {
             z: [mapDiv.data[1].geojson.features.map(
-                (feature) => aggregateForMap(DATA[selectedVar]["bias"][selectedRef][feature.id])
+                (feature) => aggregateForMap(bias[feature.id][selectedVar])
             )],
             hovertemplate: (
                 MAP_HOVER_TEMPLATE + "<br>" +
@@ -393,7 +416,7 @@ async function runBiasDashboard() {
             mode: "markers",
             name: "",
             text: [model],
-            hovertemplate: MODEL_HOVER_TEMPLATE,
+            hovertemplate: BIAS_HOVER_TEMPLATE,
             marker: {
                 size: 12,
                 color: GCM_COLORS[model.gcm],
@@ -455,73 +478,41 @@ async function runBiasDashboard() {
     }
 
     function updateDetails() {
-        const reference = DOM.getNode("reference").value;
-        DOM.getNode("details-text-ref").textContent = reference.toUpperCase();
         if (selection == null) {
             DOM.getNode("title").textContent = "no selection";
             DOM.getNode("latin-name").textContent = "n/a";
             DOM.getNode("nuts-id").textContent = "n/a";
-            DOM.getNode("details-text-x").textContent = "no selection";
-            DOM.getNode("details-text-y").textContent = "no selection";
+            //DOM.getNode("details-rec-title").textContent = "Model recommendation";
+            //DOM.getNode("details-rec-text").textContent = "no selection";
             return;
         }
         const promises = [];
         const nutsID = selection.NUTS_ID;
+        const reference = DOM.getNode("reference").value;
         const visible = selection.bias.map((model, i) => modelSelectionBoxes[i].checked);
         // Update bias scatter plot
         const dataBias = {
-            x: selection.bias.map(model => [model[BIAS_VAR_X][reference]]),
-            y: selection.bias.map(model => [model[BIAS_VAR_Y][reference]]),
+            x: selection.bias.map(model => [model[BIAS_VAR_X].value]),
+            y: selection.bias.map(model => [model[BIAS_VAR_Y].value]),
             visible: visible,
         };
-        const layoutBias = {
-            title: {text: `Model bias against ${reference.toUpperCase()}: ${selection.NUTS_NAME} (${nutsID})`},
-            annotations: []
-        };
         // Dynamic description/interpretation of bias plot
-        const annotationCommon = {
-            showarrow: true,
-            arrowhead: 1,
-            ax: 25,
-            standoff: 5,
-            xanchor: "left",
-            align: "left",
-            bgcolor: '#FFF',
-            bordercolor: "#000",
-            font: {color: "#000"},
-            opacity: 0.9
+        //let recModel = null;
+        //selection.bias.forEach((model, i) => {
+        //    if (visible[i] && (recModel == null || model.rank < recModel.rank)) {
+        //        recModel = model;
+        //    }
+        //});
+        //if (recModel == null) {
+        //    DOM.getNode("details-rec-title").textContent = "Model recommendation";
+        //    DOM.getNode("details-rec-text").textContent = "no data available";
+        //} else {
+        //    DOM.getNode("details-rec-title").textContent = `Model recommendation based on bias against ${reference.toUpperCase()}`;
+        //    DOM.getNode("details-rec-text").textContent = `${recModel.model.gcm} ${recModel.model.rcm} ${recModel.model.ens}`;
+        //}
+        const layoutBias = {
+            title: {text: `Model bias against ${reference.toUpperCase()}: ${selection.NUTS_NAME} (${nutsID})`}
         };
-        const [xMin, xIdx] = closestToZero(dataBias.x.map(x => x[0]));
-        if (xMin != null && !isNaN(xMin)) {
-            DOM.getNode("details-text-x").textContent = `${getVarName(BIAS_VAR_X)}: ${xMin.toFixed(2)} ${getBiasUnit(BIAS_VAR_X)} (GCM: ${MODELS[xIdx].gcm}, RCM: ${MODELS[xIdx].rcm}, member: ${MODELS[xIdx].ens})`;
-            if (DOM.getNode("details-annotate-x").checked) {
-                layoutBias.annotations.push({
-                    x: dataBias.x[xIdx][0],
-                    y: dataBias.y[xIdx][0],
-                    text: `smallest bias:<br>${getVarName(BIAS_VAR_X)} `,
-                    ay: 25,
-                    ...annotationCommon
-                });
-            }
-        } else {
-            DOM.getNode("details-text-x").textContent = `${getVarName(BIAS_VAR_X)}: no data`;
-        }
-        const [yMin, yIdx] = closestToZero(dataBias.y.map(y => y[0]));
-        if (yMin != null && !isNaN(yMin)) {
-            DOM.getNode("details-text-y").textContent = `${getVarName(BIAS_VAR_Y)}: ${yMin.toFixed(2)} ${getBiasUnit(BIAS_VAR_Y)} (GCM: ${MODELS[yIdx].gcm}, RCM: ${MODELS[yIdx].rcm}, member: ${MODELS[yIdx].ens})`;
-            if (DOM.getNode("details-annotate-y").checked) {
-                layoutBias.annotations.push({
-                    x: dataBias.x[yIdx][0],
-                    y: dataBias.y[yIdx][0],
-                    text: `smallest bias:<br>${getVarName(BIAS_VAR_Y)}`,
-                    ay: -25,
-                    ...annotationCommon
-                });
-            }
-        } else {
-            DOM.getNode("details-text-y").textContent = `${getVarName(BIAS_VAR_Y)}: no data`;
-        }
-
         promises.push(
             Plotly.update(DOM.getNode("bias"), dataBias, layoutBias)
         );
@@ -556,7 +547,7 @@ async function runBiasDashboard() {
 
     function generateVariableSelection(node) {
         for (let v of VARIABLES) {
-            const label = capitalizeFirst(DATA.attrs[v].name);
+            const label = capitalizeFirst(ATTRS[v].name);
             node.appendChild(DOM.newNode("option", {"value": v}, [`${label} bias`]));
         }
         node.value = DEFAULT_MAP_VAR;
@@ -637,8 +628,8 @@ async function runBiasDashboard() {
         }
     }
 
-    function selectAndUpdate(nutsID) {
-        selectData(nutsID);
+    async function selectAndUpdate(nutsID) {
+        await selectData(nutsID);
         updateMapSelection();
         updateDetails();
         DOM.scrollTo("details-anchor");
@@ -655,11 +646,11 @@ async function runBiasDashboard() {
         initializeDetails()
     ]);
     // Now everything is ready to fill values into the map
-    updateMapValues();
+    await updateMapValues();
     // Directly load and show details for a region (if given)
     const loadFromHash = window.location.hash.substring(1);
     if (loadFromHash.length > 0) {
-        selectData(loadFromHash);
+        await selectData(loadFromHash);
         //DOM.scrollTo("details-anchor");
     }
     updateDetails();
@@ -675,8 +666,11 @@ async function runBiasDashboard() {
     });
     DOM.getNode("variable").addEventListener("change", updateMapValues);
     DOM.getNode("operator").addEventListener("change", updateMapValues);
-    DOM.getNode("reference").addEventListener("change", () => {
+    DOM.getNode("reference").addEventListener("change", async () => {
         updateMapValues();
+        // The reference selector of the map also controls the reference
+        // for the bias section in the details
+        await refreshData();
         updateDetails();
     });
     DOM.getNode("autoscale").addEventListener("change", updateMapValues);
@@ -689,9 +683,6 @@ async function runBiasDashboard() {
     DOM.getNode("search-input").addEventListener("blur", (e) => {
         DOM.getNode("search-dropdown").style.display = "none";
     });
-    // Other
-    DOM.getNode("details-annotate-x").addEventListener("change", updateDetails);
-    DOM.getNode("details-annotate-y").addEventListener("change", updateDetails);
 }
 
 document.addEventListener("DOMContentLoaded", runBiasDashboard);

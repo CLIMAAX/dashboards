@@ -82,7 +82,7 @@ a:hover {
     margin-left: 2em;
     text-indent: -2em;
 }
-.footer {
+.footer, .credits {
     text-align: center;
 }
 #logos img {

@@ -27,7 +27,7 @@
             </div>
         </div>
         <div class="links">
-            <a href="https://github.com/climaax/dashboards/bias-uncertainty"><img src="assets/github.svg" alt="GitHub"></a>
+            <a href="https://github.com/CLIMAAX/dashboards"><img src="assets/github.svg" alt="GitHub"></a>
         </div>
     </div>
 
@@ -63,13 +63,13 @@
                     The bias represents the difference between the observed climate and the model representation over the historical record.
                 </p>
                 <p>
-                    Here, bias is calculated by comparing the observed values and the corresponding ones simulated by climate models from 1971 to 2000.
+                    Here, bias is calculated by comparing the annual observed values and the corresponding ones simulated by climate models averaged over the 1971-2000 period.
                     For temperature, the observed values are simply subtracted from the model estimations.
                     For precipitation, data from both sources is first aggregated as the annual cumulative rainfall, then the bias is computed as a percentage difference.
                     Bias is calculated for individual grid points at the climate model resolution (i.e., ≃11km) then spatially aggregated to the NUTS2 level by taking the median for each region.
                 </p>
                 <p>
-                    The bias calculation is available for all the EURO-CORDEX regional climate models used in the CLIMAAX workflows.
+                    The bias calculation is available for all the <a href="https://euro-cordex.net/">EURO-CORDEX</a> regional climate models used in the CLIMAAX workflows.
                     The <a href="https://www.ecad.eu/download/ensembles/download.php">EOBS</a> and <a href="https://www.ecmwf.int/en/forecasts/dataset/ecmwf-reanalysis-v5">ERA5 reanalysis</a> datasets are used as sources for the observed climate.
                     The user is referred to <a href="https://doi.org/10.1029/2019JD032344">Vautard et al. (2021)</a> for further reading on EURO-CORDEX bias.
                 </p>
@@ -106,6 +106,13 @@
     </div>
     <div class="footer">
         <p><a href="javascript:document.getElementById('dashboard-search').scrollIntoView({behavior:'smooth'});">back to top</a></p>
+    </div>
+    <div class="credits">
+        <p>
+            <a href="https://orcid.org/0000-0002-5022-1026">Majid Niazkar <img alt="ORCID iD icon" src="https://orcid.org/sites/default/files/images/orcid_16x16.png"></a> and
+            <a href="https://orcid.org/0009-0002-0611-6170">Andrea Rivosecchi <img alt="ORCID iD icon" src="https://orcid.org/sites/default/files/images/orcid_16x16.png"></a>
+        </p>
+        <p><a href="https://www.cmcc.it/"><img src="assets/cmcc.png" height="24"></a></p>
     </div>
 
 </body>

@@ -157,7 +157,7 @@ function closestToZero(xs) {
     }
     let idx = 0;
     xs.forEach((x, i) => {
-        if (Math.abs(x) < Math.abs(xs[idx])) {
+        if (isNaN(xs[idx]) || (!isNaN(x) && Math.abs(x) < Math.abs(xs[idx]))) {
             idx = i;
         }
     });
@@ -482,8 +482,8 @@ async function runBiasDashboard() {
             DOM.getNode("title").textContent = "no selection";
             DOM.getNode("latin-name").textContent = "n/a";
             DOM.getNode("nuts-id").textContent = "n/a";
-            //DOM.getNode("details-rec-title").textContent = "Model recommendation";
-            //DOM.getNode("details-rec-text").textContent = "no selection";
+            DOM.getNode("smallest-pr").textContent = "no selection";
+            DOM.getNode("smallest-tas").textContent = "no selection";
             return;
         }
         const promises = [];
@@ -497,6 +497,15 @@ async function runBiasDashboard() {
             visible: visible,
         };
         // Dynamic description/interpretation of bias plot
+        for (const v of VARIABLES) {
+            const [value, idx] = closestToZero(selection.bias.map((m, i) => (visible[i] ? m[v].value : NaN)));
+            if (!isFinite(value) || value == null) {
+                DOM.getNode(`smallest-${v}`).textContent = "no data";
+            } else {
+                const model = MODELS[idx];
+                DOM.getNode(`smallest-${v}`).textContent = `GCM: ${model.gcm}, RCM: ${model.rcm}, Member: ${model.ens} (${value} ${getBiasUnit(v)})`;
+            }
+        }
         //let recModel = null;
         //selection.bias.forEach((model, i) => {
         //    if (visible[i] && (recModel == null || model.rank < recModel.rank)) {

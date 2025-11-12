@@ -85,6 +85,9 @@ a:hover {
 .footer, .credits {
     text-align: center;
 }
+.credits .acknowledgements {
+    font-size: 95%;
+}
 #logos img {
     max-height: 70px;
 }

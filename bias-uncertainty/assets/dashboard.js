@@ -180,6 +180,10 @@ async function runBiasDashboard() {
         return fetchData(`bias-${ref}.json`);
     }
 
+    async function getProjData(nutsID) {
+        return fetchData(`projections.json`).then(proj => proj[nutsID]);
+    }
+
     const CORDEX = await fetchData("eurocordex.geojson");
     const NUTS = await fetchData("regions.geojson");
     const META = await fetchData("metadata.json");
@@ -212,16 +216,18 @@ async function runBiasDashboard() {
     }
 
     function getProjUnit(v) {
+        return "?";
         return ATTRS[v].proj.unit;
     }
 
-    /*function getProjTickSuffix(v) {
+    function getProjTickSuffix(v) {
+        return "?";
         return " " + getProjUnit(v);
-    }*/
+    }
 
-    /*function getProjLabel(v) {
+    function getProjLabel(v) {
         return getVarName(v) + " projection";
-    }*/
+    }
 
     // Application state: keep all information on selected region
     // or null if no region is selected
@@ -237,6 +243,8 @@ async function runBiasDashboard() {
         // Extract data based on selection
         const reference = DOM.getNode("reference").value;
         const biasData = await getBiasData(reference);
+        const projData = await getProjData(nutsID);
+        // Restructure bias data which are optimized for map
         const bias = MODELS.map((model, i) => {
             const out = {
                 model: model,
@@ -253,12 +261,13 @@ async function runBiasDashboard() {
             }
             return out;
         });
-        // Extract the selected data from the database
+        // Make the selected information available globally
         selection = {
             NUTS_ID: nutsID,
             geometry: nuts.geometry,
             ...nuts.properties,
-            bias: bias
+            bias: bias,
+            proj: projData
         };
         // Allow direct links to specific regions
         window.location.hash = nutsID;
@@ -449,14 +458,14 @@ async function runBiasDashboard() {
         promises.push(
             Plotly.newPlot(DOM.getNode("bias"), dataBias, layoutBias, config)
         );
-        /* Placeholders for uncertainty plots
+        // Uncertainty plots
         for (const variable of VARIABLES) {
             const dataProj = MODELS.map(model => ({
                 type: "scatter",
-                x: [0],
-                y: [0],
+                x: ["1986-2005", "2021-2040", "2041-2060", "2061-2080", "2081-2100"],  // TODO read from metadata
+                y: [NaN, NaN, NaN, NaN, NaN],  // TODO adapt length
                 name: "",
-                text: `${model.gcm} ${model.rcm}`,
+                text: `${model.gcm} ${model.rcm}`, // TODO
                 marker: {size: 8, symbol: RCM_SYMBOLS[model.rcm]},
                 line: {width: 1.5, color: GCM_COLORS[model.gcm]},
             }));
@@ -465,7 +474,7 @@ async function runBiasDashboard() {
                 margin: {l: 100, r: 0},
                 showlegend: false,
                 yaxis: {
-                    //title: {text: getProjLabel(variable)},
+                    title: {text: getProjLabel(variable)},
                     ticksuffix: getProjTickSuffix(variable)
                 }
             };
@@ -473,7 +482,6 @@ async function runBiasDashboard() {
                 Plotly.newPlot(DOM.getNode(`uncertainty-${variable}`), dataProj, layoutProj, config)
             );
         }
-        */
         return Promise.all(promises);
     }
 
@@ -529,11 +537,20 @@ async function runBiasDashboard() {
         DOM.getNode("title").textContent = selection.NUTS_NAME;
         DOM.getNode("latin-name").textContent = selection.NAME_LATN;
         DOM.getNode("nuts-id").textContent = selection.NUTS_ID;
-        /* Update projection plumes
+        // Update projection plumes
         for (const variable of VARIABLES) {
+            const proj = selection.proj[variable];
+            const projection = proj.map((model, i) => {
+                if (model == null) {
+                    return [NaN, NaN, NaN, NaN, NaN];
+                } else if (model.rcp85 == null) {
+                    return [model.hist, NaN, NaN, NaN, NaN];
+                } else {
+                    return [model.hist, ...model.rcp85];
+                }
+            });
             const dataProj = {
-                x: selection.data.map(model => model.proj.time),
-                y: selection.data.map(model => model.proj[variable]),
+                y: projection,
                 visible: visible
             };
             const layoutProj = {
@@ -543,7 +560,6 @@ async function runBiasDashboard() {
                 Plotly.update(DOM.getNode(`uncertainty-${variable}`), dataProj, layoutProj)
             );
         }
-        */
         // Offer selected data for download
         const exportButton = DOM.getNode("export-json");
         exportButton.setAttribute("href", "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(selection)));

@@ -25,6 +25,10 @@ a {
 a:hover {
     color: #F47A00;
 }
+select {
+    padding: 5px 10px 5px 5px;
+    font-size: 100%;
+}
 .header {
     display: flex;
     flex-direction: row;
@@ -134,8 +138,6 @@ a:hover {
     font-weight: bold;
 }
 #dashboard-controls select {
-    padding: 5px 10px 5px 5px;
-    font-size: 100%;
     margin-top: 5px;
     min-width: 220px;
     display: block;

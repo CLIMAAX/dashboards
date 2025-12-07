@@ -87,11 +87,10 @@
 
     <div class="details">
         <h2>Uncertainty</h2>
-        <div class="textblock">
-            <p>The model uncertainty is calculated as the difference between each model value and the corresponding ensemble mean (uncertainty of each model = model - ensemble). The ensemble mean represents the average of all climate models.</p>
-            <p>The uncertainty was computed for precipitation and temperature separately over different time periods: historical (1986-2005), and future (2021-2040, 2041-2060, 2061-2080, and 2081-2100), using different RCP scenarios (RCP2.6, RCP4.5, and RCP8.5). For both precipitation and temperature, monthly data was initially averaged over the NUTS2 regions. Then, the ensemble mean and uncertainty values were computed over each area. Finally, the results were averaged over different time periods.</p>
-            <p>In each plot, a positive uncertainty indicates that the climate model estimates a higher value in comparison to that of the ensemble mean, and vice versa. Thus, the plot presents the uncertainty over 20-year time intervals, and the line connecting the points of the same climate model illustrates the uncertainty evolution over time.</p>
-        </div>
+        <p>The model uncertainty is calculated as the difference between each model value and the corresponding ensemble mean (uncertainty of each model = model - ensemble). The ensemble mean represents the average of all climate models.</p>
+        <p>The uncertainty was computed for precipitation and temperature separately over different time periods: historical (1986-2005), and future (2021-2040, 2041-2060, 2061-2080, and 2081-2100), using different RCP scenarios (RCP2.6, RCP4.5, and RCP8.5). For both precipitation and temperature, monthly data was initially averaged over the NUTS2 regions. Then, the ensemble mean and uncertainty values were computed over each area. Finally, the results were averaged over different time periods.</p>
+        <p>In each plot, a positive uncertainty indicates that the climate model estimates a higher value in comparison to that of the ensemble mean, and vice versa. Thus, the plot presents the uncertainty over 20-year time intervals, and the line connecting the points of the same climate model illustrates the uncertainty evolution over time.</p>
+        <p><select id="dashboard-scenario"></select></p>
         <div class="side-by-side">
             <div id="dashboard-uncertainty-tas" class="left equal"></div>
             <div id="dashboard-uncertainty-pr" class="right equal"></div>

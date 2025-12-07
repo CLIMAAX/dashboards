@@ -24,11 +24,13 @@ const RCM_SYMBOLS = {
     'MPI-CSC-REMO2009': 'triangle-down'
 };
 
+// General selector configuration
+const DEFAULT_REFERENCE = "era5";
+const DEFAULT_SCENARIO = "rcp45";
 
 // Map configuration
 const DEFAULT_MAP_VAR = "tas";
 const DEFAULT_OPERATOR = "mean";
-const DEFAULT_REFERENCE = "era5";
 
 const MAP_HOVER_TEMPLATE = (
     "<b>%{location}</b><br>" +
@@ -188,7 +190,6 @@ async function runBiasDashboard() {
     const NUTS = await fetchData("regions.geojson");
     const META = await fetchData("metadata.json");
     const MODELS = META.models;
-    const ATTRS = META.attrs;
 
     function getNutsFeature(nuts_id) {
         for (const feature of NUTS.features) {
@@ -200,7 +201,7 @@ async function runBiasDashboard() {
     }
 
     function getVarName(v) {
-        return capitalizeFirst(ATTRS[v].name);
+        return capitalizeFirst(META.attrs[v].name);
     }
 
     function getBiasLabel(v) {
@@ -208,7 +209,7 @@ async function runBiasDashboard() {
     }
 
     function getBiasUnit(v) {
-        return ATTRS[v].bias.unit;
+        return META.attrs[v].bias.unit;
     }
 
     function getBiasTickSuffix(v) {
@@ -216,12 +217,10 @@ async function runBiasDashboard() {
     }
 
     function getProjUnit(v) {
-        return "?";
-        return ATTRS[v].proj.unit;
+       return META.attrs[v].proj.unit;
     }
 
     function getProjTickSuffix(v) {
-        return "?";
         return " " + getProjUnit(v);
     }
 
@@ -254,9 +253,9 @@ async function runBiasDashboard() {
             for (const variable of VARIABLES) {
                 out[variable] = {
                     value: biasData[nutsID][variable][i],
-                    name: ATTRS[variable].name,
-                    unit: ATTRS[variable].bias.unit,
-                    period: ATTRS[variable].bias.period,
+                    name: META.attrs[variable].name,
+                    unit: META.attrs[variable].bias.unit,
+                    period: META.attrs[variable].bias.period,
                 };
             }
             return out;
@@ -549,20 +548,21 @@ async function runBiasDashboard() {
     }
 
     function updateUncertaintyDetails() {
-        if (selection == null) {
+        if (selection == null || selection.proj == null) {
             return; // TODO
         }
         const visible = selection.bias.map((model, i) => modelSelectionBoxes[i].checked);
+        const scenario = DOM.getNode("scenario").value;
         return Promise.all(VARIABLES.map(variable => {
             const proj = selection.proj[variable];
             const dataProj = {
                 y: proj.map((model, i) => {
                     if (model == null) {
                         return [NaN, NaN, NaN, NaN, NaN];
-                    } else if (model.rcp85 == null) {
+                    } else if (model[scenario] == null) {
                         return [model.hist, NaN, NaN, NaN, NaN];
                     } else {
-                        return [model.hist, ...model.rcp85];
+                        return [model.hist, ...model[scenario]];
                     }
                 }),
                 visible: visible
@@ -579,7 +579,7 @@ async function runBiasDashboard() {
 
     function generateVariableSelection(node) {
         for (let v of VARIABLES) {
-            const label = capitalizeFirst(ATTRS[v].name);
+            const label = capitalizeFirst(META.attrs[v].name);
             node.appendChild(DOM.newNode("option", {"value": v}, [`${label} bias`]));
         }
         node.value = DEFAULT_MAP_VAR;
@@ -599,6 +599,13 @@ async function runBiasDashboard() {
             node.appendChild(DOM.newNode("option", {"value": ref}, [`Bias against ${label}`]));
         }
         node.value = DEFAULT_REFERENCE;
+    }
+
+    function generateScenarioSelection(node) {
+        for (let rcp of META.scenarios) {
+            node.appendChild(DOM.newNode("option", {"value": rcp}, [rcp.toUpperCase()]));
+        }
+        node.value = DEFAULT_SCENARIO;
     }
 
     // Initialisation: generate model selection dialogue with all
@@ -671,6 +678,7 @@ async function runBiasDashboard() {
     generateVariableSelection(DOM.getNode("variable"));
     generateOperatorSelection(DOM.getNode("operator"));
     generateReferenceSelection(DOM.getNode("reference"));
+    generateScenarioSelection(DOM.getNode("scenario"));
     generateModelSelection();
     // Create empty map and details plots
     await Promise.all([
@@ -715,6 +723,8 @@ async function runBiasDashboard() {
     DOM.getNode("search-input").addEventListener("blur", (e) => {
         DOM.getNode("search-dropdown").style.display = "none";
     });
+    // Details controls
+    DOM.getNode("scenario").addEventListener("change", updateUncertaintyDetails);
 }
 
 document.addEventListener("DOMContentLoaded", runBiasDashboard);

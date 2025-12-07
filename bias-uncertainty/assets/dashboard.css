@@ -52,7 +52,7 @@ a:hover {
     flex-wrap: wrap;
 }
 .side-by-side .left {
-    margin-right: 20px;
+    margin-right: 40px;
 }
 .side-by-side .fixed {
     flex-grow: 0;

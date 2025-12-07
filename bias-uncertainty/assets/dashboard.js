@@ -226,7 +226,7 @@ async function runBiasDashboard() {
     }
 
     function getProjLabel(v) {
-        return getVarName(v) + " projection";
+        return getVarName(v) + " uncertainty";
     }
 
     // Application state: keep all information on selected region
@@ -460,7 +460,7 @@ async function runBiasDashboard() {
         }));
         const layoutBias = {
             height: 600,
-            margin: {l: 100, r: 0},
+            margin: {l: 75, r: 25},
             xaxis: {
                 title: {text: getBiasLabel(BIAS_VAR_X)},
                 ticksuffix: getBiasTickSuffix(BIAS_VAR_X),
@@ -536,8 +536,8 @@ async function runBiasDashboard() {
                 line: {width: 1.5, color: GCM_COLORS[model.gcm]},
             }));
             const layoutProj = {
-                height: 450,
-                margin: {l: 100, r: 0},
+                height: 400,
+                margin: {l: 75, r: 25},
                 showlegend: false,
                 yaxis: {
                     title: {text: getProjLabel(variable)},

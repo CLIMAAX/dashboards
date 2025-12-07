@@ -11,9 +11,9 @@ body > div {
 h1, h2 {
     color: #393939;
     font-weight: 800;
-}
-h1 {
     margin-top: 10px;
+    margin-bottom: 0;
+    padding-bottom: 10px; /* avoid margin collapse */
 }
 p {
     line-height: 160%;
@@ -43,21 +43,29 @@ a:hover {
 .details {
     border: 1px solid #CCC;
     border-radius: 10px;
-    padding: 20px 30px;
+    padding: 30px;
     box-shadow: rgba(0, 0, 0, 0.15) 2px 2px 2.5px;
 }
 .side-by-side {
     display: flex;
     flex-direction: row;
     flex-wrap: wrap;
-    margin-top: 40px;
 }
-.side-plot {
-    flex: 100 1 500px;
-}
-.side-text {
-    flex: 1 0 400px;
+.side-by-side .left {
     margin-right: 20px;
+}
+.side-by-side .fixed {
+    flex-grow: 0;
+    flex-shrink: 1;
+    flex-basis: 400px;
+}
+.side-by-side .expand {
+    flex-grow: 100;
+    flex-shrink: 1;
+}
+.side-by-side .equal {
+    flex-grow: 1;
+    flex-shrink: 1;
 }
 .note {
     border-radius: 5px;

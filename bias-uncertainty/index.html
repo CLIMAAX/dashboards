@@ -48,16 +48,19 @@
     </div>
 
     <div class="details" id="dashboard-details-anchor">
-        <div>
-            <h1 id="dashboard-title">no selection</h1>
-            <p>
-                Download data for <span id="dashboard-latin-name"></span> (<span id="dashboard-nuts-id"></span>) as:
-                <a id="dashboard-export-json">JSON</a>
-            </p>
-        </div>
+        <h1 id="dashboard-title">no selection</h1>
+        <p>
+            Download data for <span id="dashboard-latin-name"></span> (<span id="dashboard-nuts-id"></span>) as:
+            <a id="dashboard-export-json">JSON</a>
+        </p>
+        <ul>
+            <li><a href="javascript:document.getElementById('details-bias').scrollIntoView({behavior:'smooth'});">Model Bias</a></li>
+            <li><a href="javascript:document.getElementById('details-distribution').scrollIntoView({behavior:'smooth'});">Distributions (WIP)</a></li>
+            <li><a href="javascript:document.getElementById('details-uncertainty').scrollIntoView({behavior:'smooth'});">Uncertainty (WIP)</a></li>
+        </ul>
     </div>
 
-    <div class="details">
+    <div class="details" id="details-bias">
         <h2>Model Bias</h2>
         <div class="side-by-side">
             <div class="left fixed">
@@ -85,7 +88,13 @@
         </div>
     </div>
 
-    <div class="details">
+    <div class="details" id="details-distribution">
+        <h2>Distributions</h2>
+        <p><input type="checkbox" id="dashboard-distribution-remove-bias"> remove bias</p>
+        <div id="dashboard-distribution-tas"></div>
+    </div>
+
+    <div class="details" id="details-uncertainty">
         <h2>Uncertainty</h2>
         <p>The model uncertainty is calculated as the difference between each model value and the corresponding ensemble mean (uncertainty of each model = model - ensemble). The ensemble mean represents the average of all climate models.</p>
         <p>The uncertainty was computed for precipitation and temperature separately over different time periods: historical (1986-2005), and future (2021-2040, 2041-2060, 2061-2080, and 2081-2100), using different RCP scenarios (RCP2.6, RCP4.5, and RCP8.5). For both precipitation and temperature, monthly data was initially averaged over the NUTS2 regions. Then, the ensemble mean and uncertainty values were computed over each area. Finally, the results were averaged over different time periods.</p>

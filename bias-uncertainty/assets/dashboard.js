@@ -153,6 +153,10 @@ function capitalizeFirst(s) {
     return s.charAt(0).toUpperCase() + s.substring(1);
 }
 
+function null2NaN(xs) {
+    return xs.map(x => (x != null ? x : NaN));
+}
+
 function closestToZero(xs) {
     if (xs.length == 0) {
         return NaN;
@@ -180,6 +184,10 @@ async function runBiasDashboard() {
 
     function getBiasData(ref) {
         return fetchData(`bias-${ref}.json`);
+    }
+
+    async function getDistData(nutsID) {
+        return fetchData("cdfs.json").then(dist => dist[nutsID]);
     }
 
     async function getProjData(nutsID) {
@@ -242,7 +250,6 @@ async function runBiasDashboard() {
         // Extract data based on selection
         const reference = DOM.getNode("reference").value;
         const biasData = await getBiasData(reference);
-        const projData = await getProjData(nutsID);
         // Restructure bias data which are optimized for map
         const bias = MODELS.map((model, i) => {
             const out = {
@@ -266,7 +273,8 @@ async function runBiasDashboard() {
             geometry: nuts.geometry,
             ...nuts.properties,
             bias: bias,
-            proj: projData
+            dist: await getDistData(nutsID),
+            proj: await getProjData(nutsID),
         };
         // Allow direct links to specific regions
         window.location.hash = nutsID;
@@ -414,6 +422,7 @@ async function runBiasDashboard() {
     function initializeDetails() {
         return Promise.all([
             initializeBiasDetails(),
+            initializeDistributionDetails(),
             initializeUncertaintyDetails(),
         ]);
     }
@@ -422,6 +431,7 @@ async function runBiasDashboard() {
         return Promise.all([
             updateRegionDetails(),
             updateBiasDetails(),
+            updateDistributionDetails(),
             updateUncertaintyDetails(),
         ]);
     }
@@ -517,6 +527,56 @@ async function runBiasDashboard() {
         return Plotly.update(DOM.getNode("bias"), dataBias, layoutBias);
     }
 
+    // Details: historical period distributions
+
+    function initializeDistributionDetails() {
+        const data = MODELS.map(model => ({
+            type: "scatter",
+            x: [NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN],
+            y: [0, 1, 5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 99, 100],
+            name: "",
+            text: `${model.gcm} ${model.rcm}`, // TODO
+            marker: {size: 1, symbol: RCM_SYMBOLS[model.rcm]},
+            line: {width: 1.5, color: GCM_COLORS[model.gcm]},
+        }));
+        const layout = {
+            height: 600,
+            margin: {l: 75, r: 25},
+            showlegend: false,
+            xaxis: {
+                title: {text: "Temperature"}, // TODO
+                ticksuffix: " °C" // TODO
+            },
+            yaxis: {
+                title: {text: "Percentile"}, // TODO
+                ticksuffix: "%" // TODO
+            }
+        };
+        const config = {
+            responsive: true,
+            modeBarButtonsToRemove: ["select2d", "lasso2d"]
+        };
+        return Plotly.newPlot(DOM.getNode(`distribution-tas`), data, layout, config);
+    }
+
+    function updateDistributionDetails() {
+        if (selection == null || selection.dist == null) {
+            return; // TODO
+        }
+        const visible = selection.dist.map((model, i) => modelSelectionBoxes[i].checked);
+        const data = {
+            x: selection.dist.map(null2NaN),
+            visible: visible
+        };
+        if (DOM.getNode("distribution-remove-bias").checked) {
+            data.x = data.x.map((xs, i) => xs.map(x => x - selection.bias[i].tas.value));
+        }
+        const layout = {};
+        return Plotly.update(DOM.getNode(`distribution-tas`), data, layout);
+    }
+
+    DOM.getNode("distribution-remove-bias").addEventListener("change", updateDistributionDetails);
+
     // Details: uncertainty
 
     function initializeUncertaintyDetails() {
@@ -525,7 +585,7 @@ async function runBiasDashboard() {
             modeBarButtonsToRemove: ["select2d", "lasso2d"]
         };
         return Promise.all(VARIABLES.map(variable => {
-            const dataProj = MODELS.map(model => ({
+            const data = MODELS.map(model => ({
                 type: "scatter",
                 x: ["1986-2005", "2021-2040", "2041-2060", "2061-2080", "2081-2100"],  // TODO read from metadata
                 y: [NaN, NaN, NaN, NaN, NaN],  // TODO adapt length
@@ -534,7 +594,7 @@ async function runBiasDashboard() {
                 marker: {size: 8, symbol: RCM_SYMBOLS[model.rcm]},
                 line: {width: 1.5, color: GCM_COLORS[model.gcm]},
             }));
-            const layoutProj = {
+            const layout = {
                 height: 400,
                 margin: {l: 75, r: 25},
                 showlegend: false,
@@ -543,7 +603,7 @@ async function runBiasDashboard() {
                     ticksuffix: getProjTickSuffix(variable)
                 }
             };
-            return Plotly.newPlot(DOM.getNode(`uncertainty-${variable}`), dataProj, layoutProj, config);
+            return Plotly.newPlot(DOM.getNode(`uncertainty-${variable}`), data, layout, config);
         }));
     }
 

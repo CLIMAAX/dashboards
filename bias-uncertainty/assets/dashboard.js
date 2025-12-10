@@ -24,6 +24,12 @@ const RCM_SYMBOLS = {
     'MPI-CSC-REMO2009': 'triangle-down'
 };
 
+const SCENARIOS = {
+    "rcp26": "RCP 2.6",
+    "rcp45": "RCP 4.5",
+    "rcp85": "RCP 8.5",
+}
+
 // General selector configuration
 const DEFAULT_REFERENCE = "era5";
 const DEFAULT_SCENARIO = "rcp45";
@@ -209,27 +215,19 @@ async function runBiasDashboard() {
     }
 
     function getVarName(v) {
-        return capitalizeFirst(META.attrs[v].name);
+        return capitalizeFirst(META.variables[v].name);
+    }
+
+    function getUnit(v, product) {
+        return META.variables[v][product].unit;
+    }
+
+    function getTickSuffix(v, product) {
+        return " " + getUnit(v, product);
     }
 
     function getBiasLabel(v) {
         return getVarName(v) + " bias";
-    }
-
-    function getBiasUnit(v) {
-        return META.attrs[v].bias.unit;
-    }
-
-    function getBiasTickSuffix(v) {
-        return " " + getBiasUnit(v);
-    }
-
-    function getProjUnit(v) {
-       return META.attrs[v].proj.unit;
-    }
-
-    function getProjTickSuffix(v) {
-        return " " + getProjUnit(v);
     }
 
     function getProjLabel(v) {
@@ -260,9 +258,9 @@ async function runBiasDashboard() {
             for (const variable of VARIABLES) {
                 out[variable] = {
                     value: biasData[nutsID][variable][i],
-                    name: META.attrs[variable].name,
-                    unit: META.attrs[variable].bias.unit,
-                    period: META.attrs[variable].bias.period,
+                    name: META.variables[variable].name,
+                    unit: META.variables[variable].bias.unit,
+                    period: META.variables[variable].bias.period,
                 };
             }
             return out;
@@ -384,7 +382,7 @@ async function runBiasDashboard() {
             )],
             hovertemplate: (
                 MAP_HOVER_TEMPLATE + "<br>" +
-                "<b>Bias:</b> %{z:.2f} " + getBiasUnit(selectedVar)
+                "<b>Bias:</b> %{z:.2f} " + getUnit(selectedVar, "bias")
             )
         };
         const layout = {
@@ -400,7 +398,7 @@ async function runBiasDashboard() {
                         text: getBiasLabel(selectedVar),
                         side: "right"
                     },
-                    ticksuffix: getBiasTickSuffix(selectedVar)
+                    ticksuffix: getTickSuffix(selectedVar, "bias")
                 },
             },
         };
@@ -472,7 +470,7 @@ async function runBiasDashboard() {
             margin: {l: 75, r: 25},
             xaxis: {
                 title: {text: getBiasLabel(BIAS_VAR_X)},
-                ticksuffix: getBiasTickSuffix(BIAS_VAR_X),
+                ticksuffix: getTickSuffix(BIAS_VAR_X, "bias"),
                 zeroline: true,
                 zerolinecolor: "black",
                 zerolinewidth: 2.0,
@@ -481,7 +479,7 @@ async function runBiasDashboard() {
             },
             yaxis: {
                 title: {text: getBiasLabel(BIAS_VAR_Y)},
-                ticksuffix: getBiasTickSuffix(BIAS_VAR_Y),
+                ticksuffix: getTickSuffix(BIAS_VAR_Y, "bias"),
                 zeroline: true,
                 zerolinecolor: "black",
                 zerolinewidth: 2.0,
@@ -518,7 +516,7 @@ async function runBiasDashboard() {
                 DOM.getNode(`smallest-${v}`).textContent = "no data";
             } else {
                 const model = MODELS[idx];
-                DOM.getNode(`smallest-${v}`).textContent = `GCM: ${model.gcm}, RCM: ${model.rcm}, Member: ${model.ens} (${value} ${getBiasUnit(v)})`;
+                DOM.getNode(`smallest-${v}`).textContent = `GCM: ${model.gcm}, RCM: ${model.rcm}, Member: ${model.ens} (${value} ${getUnit(v, "bias")})`;
             }
         }
         const layoutBias = {
@@ -600,7 +598,7 @@ async function runBiasDashboard() {
                 showlegend: false,
                 yaxis: {
                     title: {text: getProjLabel(variable)},
-                    ticksuffix: getProjTickSuffix(variable)
+                    ticksuffix: getTickSuffix(variable, "proj")
                 }
             };
             return Plotly.newPlot(DOM.getNode(`uncertainty-${variable}`), data, layout, config);
@@ -639,7 +637,7 @@ async function runBiasDashboard() {
 
     function generateVariableSelection(node) {
         for (let v of VARIABLES) {
-            const label = capitalizeFirst(META.attrs[v].name);
+            const label = getVarName(v);
             node.appendChild(DOM.newNode("option", {"value": v}, [`${label} bias`]));
         }
         node.value = DEFAULT_MAP_VAR;
@@ -662,8 +660,8 @@ async function runBiasDashboard() {
     }
 
     function generateScenarioSelection(node) {
-        for (let rcp of META.scenarios) {
-            node.appendChild(DOM.newNode("option", {"value": rcp}, [rcp.toUpperCase()]));
+        for (let rcp in SCENARIOS) {
+            node.appendChild(DOM.newNode("option", {"value": rcp}, [SCENARIOS[rcp]]));
         }
         node.value = DEFAULT_SCENARIO;
     }
@@ -731,7 +729,7 @@ async function runBiasDashboard() {
         await selectData(nutsID);
         updateMapSelection();
         updateDetails();
-        DOM.scrollTo("details-anchor");
+        DOM.scrollTo("details");
     }
 
     // Populate GUI
@@ -751,7 +749,6 @@ async function runBiasDashboard() {
     const loadFromHash = window.location.hash.substring(1);
     if (loadFromHash.length > 0) {
         await selectData(loadFromHash);
-        //DOM.scrollTo("details-anchor");
     }
     updateDetails();
     updateMapSelection();

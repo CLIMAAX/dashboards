@@ -47,21 +47,18 @@
         </div>
     </div>
 
-    <div class="details" id="dashboard-details-anchor">
+    <div class="details" id="dashboard-details">
         <h1 id="dashboard-title">no selection</h1>
         <p>
             Download data for <span id="dashboard-latin-name"></span> (<span id="dashboard-nuts-id"></span>) as:
             <a id="dashboard-export-json">JSON</a>
         </p>
-        <ul>
-            <li><a href="javascript:document.getElementById('details-bias').scrollIntoView({behavior:'smooth'});">Model Bias</a></li>
-            <li><a href="javascript:document.getElementById('details-distribution').scrollIntoView({behavior:'smooth'});">Distributions (WIP)</a></li>
-            <li><a href="javascript:document.getElementById('details-uncertainty').scrollIntoView({behavior:'smooth'});">Uncertainty (WIP)</a></li>
-        </ul>
     </div>
 
-    <div class="details" id="details-bias">
-        <h2>Model Bias</h2>
+    <details open>
+        <summary>
+            <h2>Model Bias</h2>
+        </summary>
         <div class="side-by-side">
             <div class="left fixed">
                 <p>
@@ -86,16 +83,20 @@
             <p><strong>Temperature:</strong> <span id="dashboard-smallest-tas">no selection</span></p>
             <p><strong>Precipitation:</strong> <span id="dashboard-smallest-pr">no selection</span></p>
         </div>
-    </div>
+    </details>
 
-    <div class="details" id="details-distribution">
-        <h2>Distributions</h2>
+    <details>
+        <summary>
+            <h2>Model Percentiles</h2>
+        </summary>
         <p><input type="checkbox" id="dashboard-distribution-remove-bias"> remove bias</p>
         <div id="dashboard-distribution-tas"></div>
-    </div>
+    </details>
 
-    <div class="details" id="details-uncertainty">
-        <h2>Uncertainty</h2>
+    <details open>
+        <summary>
+            <h2>Model Uncertainty</h2>
+        </summary>
         <p>The model uncertainty is calculated as the difference between each model value and the corresponding ensemble mean (uncertainty of each model = model - ensemble). The ensemble mean represents the average of all climate models.</p>
         <p>The uncertainty was computed for precipitation and temperature separately over different time periods: historical (1986-2005), and future (2021-2040, 2041-2060, 2061-2080, and 2081-2100), using different RCP scenarios (RCP2.6, RCP4.5, and RCP8.5). For both precipitation and temperature, monthly data was initially averaged over the NUTS2 regions. Then, the ensemble mean and uncertainty values were computed over each area. Finally, the results were averaged over different time periods.</p>
         <p>In each plot, a positive uncertainty indicates that the climate model estimates a higher value in comparison to that of the ensemble mean, and vice versa. Thus, the plot presents the uncertainty over 20-year time intervals, and the line connecting the points of the same climate model illustrates the uncertainty evolution over time.</p>
@@ -104,18 +105,19 @@
             <div id="dashboard-uncertainty-tas" class="left equal"></div>
             <div id="dashboard-uncertainty-pr" class="right equal"></div>
         </div>
-    </div>
+    </details>
 
     <div class="footer">
         <p><a href="javascript:document.getElementById('dashboard-search').scrollIntoView({behavior:'smooth'});">back to top</a></p>
     </div>
     <div class="credits">
         <p>
-            <a href="https://orcid.org/0000-0002-5022-1026">Majid Niazkar <img alt="ORCID iD icon" src="https://orcid.org/sites/default/files/images/orcid_16x16.png"></a> and
-            <a href="https://orcid.org/0009-0002-0611-6170">Andrea Rivosecchi <img alt="ORCID iD icon" src="https://orcid.org/sites/default/files/images/orcid_16x16.png"></a>
+            <a href="https://orcid.org/0000-0002-5022-1026">Majid Niazkar <img alt="ORCID iD icon" src="https://orcid.org/sites/default/files/images/orcid_16x16.png"></a>,
+            <a href="https://orcid.org/0009-0002-0611-6170">Andrea Rivosecchi <img alt="ORCID iD icon" src="https://orcid.org/sites/default/files/images/orcid_16x16.png"></a> and
+            <a href="https://orcid.org/0009-0009-7492-9940">Lisa Ferrari <img alt="ORCID iD icon" src="https://orcid.org/sites/default/files/images/orcid_16x16.png"></a>
         </p>
         <p class="acknowledgements">
-            The authors acknowledge contributions from <a href="https://orcid.org/0000-0001-7037-5164">Muhammad Faizan Aslam <img alt="ORCID iD icon" src="https://orcid.org/sites/default/files/images/orcid_16x16.png"></a> and <a href="https://orcid.org/0009-0009-7492-9940">Lisa Ferrari <img alt="ORCID iD icon" src="https://orcid.org/sites/default/files/images/orcid_16x16.png"></a> for help with data processing.
+            The authors acknowledge contributions from <a href="https://orcid.org/0000-0001-7037-5164">Muhammad Faizan Aslam <img alt="ORCID iD icon" src="https://orcid.org/sites/default/files/images/orcid_16x16.png"></a> for help with data processing.
         </p>
         <p><a href="https://www.cmcc.it/"><img src="assets/cmcc.png" height="24"></a></p>
     </div>

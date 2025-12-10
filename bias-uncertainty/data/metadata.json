@@ -4,13 +4,19 @@
             "name": "precipitation",
             "bias": {"period": "1971-2000", "unit": "%"},
             "perc": {"unit": "??"},
-            "proj": {"unit": "mm/d"}
+            "proj": {
+                "unit": "mm/d",
+                "periods": ["1986-2005", "2021-2040", "2041-2060", "2061-2080", "2081-2100"]
+            }
         },
         "tas": {
             "name": "temperature",
             "bias": {"period": "1971-2000", "unit": "\u00b0C"},
             "perc": {"unit": "\u00b0C"},
-            "proj": {"unit": "\u00b0C"}
+            "proj": {
+                "unit": "\u00b0C",
+                "periods": ["1986-2005", "2021-2040", "2041-2060", "2061-2080", "2081-2100"]
+            }
         }
     },
     "models": [

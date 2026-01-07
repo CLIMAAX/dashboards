@@ -1,9 +1,3 @@
-//require.config({
-//    paths: {
-//        "Plotly": "https://cdn.plot.ly/plotly-3.0.1.min"
-//    }
-//});
-
 const GCM_COLORS = {
     'CNRM-CERFACS-CNRM-CM5': 'green',
     'ICHEC-EC-EARTH': 'red',
@@ -193,7 +187,8 @@ async function runBiasDashboard() {
     }
 
     function getDetailsData(nutsID) {
-        return fetchData("details.json").then(data => data[nutsID]);
+        const country = nutsID.substring(0, 2);
+        return fetchData(`details-${country}.json`).then(data => data[nutsID]);
     }
 
     const CORDEX = await fetchData("eurocordex.geojson");

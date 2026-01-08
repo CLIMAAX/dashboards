@@ -170,6 +170,18 @@ function closestToZero(xs) {
     return [xs[idx], idx];
 }
 
+function applyAlongEns(func, xss) {
+    // Skip no-data entries
+    xss = xss.filter(xs => xs != null);
+    // Output length is length of the longest series of values
+    const n = Math.max(...xss.map(xs => xs.length));
+    // Apply the function along the ensemble dimension (axis 0)
+    return Array.from({length: n}, (_, i) => func(
+        xss.map(xs => xs[i])  // get value from ens member or undefined
+        .filter(x => (x != null && isFinite(x)))  // remove invalid before applying function
+    ));
+}
+
 async function runBiasDashboard() {
 
     // Cached data retrieval
@@ -581,15 +593,30 @@ async function runBiasDashboard() {
         };
         return Promise.all(VARIABLES.map(variable => {
             const periods = META.variables[variable].proj.periods;
-            const data = MODELS.map(model => ({
-                type: "scatter",
-                x: periods,
-                y: [NaN],
-                name: "",
-                text: `${model.gcm} ${model.rcm}`, // TODO
-                marker: {size: 8, symbol: RCM_SYMBOLS[model.rcm]},
-                line: {width: 1.5, color: GCM_COLORS[model.gcm]},
-            }));
+            const data = [
+                {
+                    name: "ensemble minimum",
+                    type: "scatter",
+                    x: periods,
+                    y: [NaN],
+                    line: {color: "lightgrey"}
+                },
+                {
+                    name: "ensemble maximum",
+                    type: "scatter",
+                    x: periods,
+                    y: [NaN],
+                    line: {color: "lightgrey"},
+                    fill: "tonexty"
+                },
+                {
+                    name: "ensemble mean",
+                    type: "scatter",
+                    x: periods,
+                    y: [NaN],
+                    line: {color: "black"}
+                }
+            ];
             const layout = {
                 height: 400,
                 margin: {l: 75, r: 25},
@@ -609,9 +636,13 @@ async function runBiasDashboard() {
         }
         const scenario = DOM.getNode("scenario").value;
         return Promise.all(VARIABLES.map(v => {
+            const ensValues = selection.data.map((model, i) => model[v][scenario].values);
             const dataProj = {
-                y: selection.data.map((model, i) => null2NaN(model[v][scenario].values)),
-                visible: modelSelectionBoxes.map(_ => _.checked)
+                y: [
+                    applyAlongEns(OPERATORS.minimum, ensValues),
+                    applyAlongEns(OPERATORS.maximum, ensValues),
+                    applyAlongEns(OPERATORS.mean, ensValues)
+                ]
             };
             const layoutProj = {
                 title: {text: `${getProjLabel(v)}: ${selection.NUTS_NAME} (${selection.NUTS_ID})`}

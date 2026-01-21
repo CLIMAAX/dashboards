@@ -234,7 +234,7 @@ async function runBiasDashboard() {
     }
 
     function getProjLabel(v) {
-        return getVarName(v) + " uncertainty";
+        return getVarName(v);
     }
 
     // Application state: keep all information on selected region
@@ -593,18 +593,22 @@ async function runBiasDashboard() {
         };
         return Promise.all(VARIABLES.map(variable => {
             const periods = META.variables[variable].proj.periods;
+            const periodTicks = periods.map(
+                // place at center of interval (assumes period values are "YYYY-YYYY")
+                p => 0.5 * (parseInt(p.substring(0, 4)) + parseInt(p.substring(p.length - 4)))
+            );
             const data = [
                 {
                     name: "ensemble minimum",
                     type: "scatter",
-                    x: periods,
+                    x: periodTicks,
                     y: [NaN],
                     line: {color: "lightgrey"}
                 },
                 {
                     name: "ensemble maximum",
                     type: "scatter",
-                    x: periods,
+                    x: periodTicks,
                     y: [NaN],
                     line: {color: "lightgrey"},
                     fill: "tonexty"
@@ -612,7 +616,7 @@ async function runBiasDashboard() {
                 {
                     name: "ensemble mean",
                     type: "scatter",
-                    x: periods,
+                    x: periodTicks,
                     y: [NaN],
                     line: {color: "black"}
                 }
@@ -623,7 +627,12 @@ async function runBiasDashboard() {
                 showlegend: false,
                 yaxis: {
                     title: {text: getProjLabel(variable)},
-                    ticksuffix: getTickSuffix(variable, "proj")
+                    ticksuffix: getTickSuffix(variable, "proj"),
+                },
+                xaxis: {
+                    tickmode: "array",
+                    tickvals: periodTicks,
+                    ticktext: periods,
                 }
             };
             return Plotly.newPlot(DOM.getNode(`uncertainty-${variable}`), data, layout, config);
@@ -635,14 +644,21 @@ async function runBiasDashboard() {
             return; // TODO
         }
         const scenario = DOM.getNode("scenario").value;
+        const visible = selection.data.map((model, i) => modelSelectionBoxes[i].checked);
         return Promise.all(VARIABLES.map(v => {
-            const ensValues = selection.data.map((model, i) => model[v][scenario].values);
+            const ensValues = selection.data.map(
+                (model, i) => visible[i] ? model[v][scenario].values : null
+            );
+            let ensMean = applyAlongEns(OPERATORS.mean, ensValues);
+            let ensMin = applyAlongEns(OPERATORS.minimum, ensValues);
+            let ensMax =  applyAlongEns(OPERATORS.maximum, ensValues);
+            if (DOM.getNode("removeensfromuncertainty").checked) {
+                ensMin = ensMin.map((x, i) => x - ensMean[i]);
+                ensMax = ensMax.map((x, i) => x - ensMean[i]);
+                ensMean = ensMean.map(() => 0.);
+            }
             const dataProj = {
-                y: [
-                    applyAlongEns(OPERATORS.minimum, ensValues),
-                    applyAlongEns(OPERATORS.maximum, ensValues),
-                    applyAlongEns(OPERATORS.mean, ensValues)
-                ]
+                y: [ensMin, ensMax, ensMean]
             };
             const layoutProj = {
                 title: {text: `${getProjLabel(v)}: ${selection.NUTS_NAME} (${selection.NUTS_ID})`}
@@ -801,6 +817,7 @@ async function runBiasDashboard() {
     });
     // Details controls
     DOM.getNode("scenario").addEventListener("change", updateUncertaintyDetails);
+    DOM.getNode("removeensfromuncertainty").addEventListener("change", updateUncertaintyDetails);
 }
 
 document.addEventListener("DOMContentLoaded", runBiasDashboard);

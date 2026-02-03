@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+  <link href="assets/dashboard.css" rel="stylesheet">
+
+  <script src="https://cdn.plot.ly/plotly-3.3.0.min.js" charset="utf-8"></script>
+  <script src="https://d3js.org/d3.v6.min.js" charset="utf-8"></script>
+  <script src="assets/dashboard.js" defer></script>
+
+  <title>Climate scenarios - simulation trends</title>
+</head>
+<body>
+    <div class="header">
+        <div class="links">
+            <a href="https://www.climaax.eu"><img src="assets/climaax.png" alt="CLIMAAX"></a>
+        </div>
+        <div class="center"></div>
+        <div class="links">
+            <a href="https://github.com/CLIMAAX/dashboards"><img src="assets/github.svg" alt="GitHub"></a>
+        </div>
+    </div>
+
+    <div id="dashboard">
+        <h1>Projections from climate models for each IPCC climate region for various emission scenarios</h1>
+        <p>
+            In the plot below, the horizontal axis indicates the change in the selected climate variable.
+            At the top we have indicated the multi-model means of emisssions scenarios.
+            Underneath, we show the spread of model outcomes from which the multi-model mean was calculated.
+        </p>
+        <div id="plotDiv"></div>
+        <div class="scenarios-widget-controls">
+            <fieldset id="controls-region">
+                <legend>Region</legend>
+                <select id="region">
+                    <option value="NEU">NEU - Northern Europe</option>
+                    <option value="WCE">WCE - West and Central Europe</option>
+                    <option value="MED">MED - Mediterranean</option>
+                    <option value="EEU">EEU - Eastern Europe</option>
+                </select>
+                <img src="assets/regions_map.png" id="regions-map">
+            </fieldset>
+            <fieldset>
+                <legend>Variable</legend>
+                <select id="variable">
+                    <!-- Options will be populated dynamically -->
+                </select>
+                <label>
+                    Dataset
+                    <select id="dataset">
+                        <option value="CMIP6">CMIP6</option>
+                        <option value="CORDEX">CORDEX</option>
+                    </select>
+                </label>
+                <label>
+                    Time Filter
+                    <select id="time_filter">
+                        <option value="year">Year</option>
+                        <option value="DecFeb">Dec-Feb</option>
+                        <option value="MarMay">Mar-May</option>
+                        <option value="JunAug">Jun-Aug</option>
+                        <option value="SepNov">Sep-Nov</option>
+                    </select>
+                </label>
+                <label>
+                    Timeframe
+                    <select id="timeframe">
+                        <option value="2021">2021</option>
+                        <option value="2041">2041</option>
+                        <option value="2081">2081</option>
+                    </select>
+                </label>
+            </fieldset>
+        </div>
+    </div>
+</body>
+</html>

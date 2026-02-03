@@ -1,0 +1,79 @@
+body {
+    font-family: "Roboto", sans-serif;
+    font-optical-sizing: auto;
+    font-style: normal;
+    font-variation-settings: "wdth" 100;
+}
+body > * {
+    max-width: 1100px;
+    margin: 30px auto;
+}
+h1 {
+    color: #393939;
+    font-weight: 800;
+    font-size: 130%;
+    margin-top: 30px;
+}
+p {
+    line-height: 160%;
+}
+a {
+    color: #1A7485;
+    text-decoration: none;
+}
+a:hover {
+    color: #F47A00;
+}
+select {
+    padding: 5px 10px 5px 5px;
+    font-size: 100%;
+}
+.header {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+}
+.header .center {
+    flex: 1 1;
+}
+.header .links {
+    flex: 0 0 auto;
+}
+.header .links img {
+    max-height: 60px;
+}
+#dashboard p, #dashboard h1 {
+    text-align: center;
+}
+.scenarios-widget-controls {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+.scenarios-widget-controls fieldset legend {
+    padding: 0 0.3em;
+}
+.scenarios-widget-controls fieldset {
+    margin: 12px;
+    line-height: 150%;
+    border-radius: 5px;
+    border: 1px solid #CCC;
+    font-size: 90%;
+    box-shadow: rgba(0, 0, 0, 0.15) 1px 1px 2.5px;
+}
+.scenarios-widget-controls fieldset label {
+    display: block;
+    margin-top: 10px;
+}
+.scenarios-widget-controls select {
+    width: 100%;
+}
+img#regions-map {
+    display: block;
+    max-width: 300px;
+}
+div#plotDiv {
+    margin: 50px auto 10px auto;
+}

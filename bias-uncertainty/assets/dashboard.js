@@ -435,7 +435,7 @@ async function runBiasDashboard() {
     function initializeDetails() {
         return Promise.all([
             initializeBiasDetails(),
-            initializeDistributionDetails(),
+            initializePercentilesDetails(),
             initializeUncertaintyDetails(),
         ]);
     }
@@ -444,7 +444,7 @@ async function runBiasDashboard() {
         return Promise.all([
             updateRegionDetails(),
             updateBiasDetails(),
-            updateDistributionDetails(),
+            updatePercentilesDetails(),
             updateUncertaintyDetails(),
         ]);
     }
@@ -540,48 +540,49 @@ async function runBiasDashboard() {
         return Plotly.update(DOM.getNode("bias"), dataBias, layoutBias);
     }
 
-    // Details: historical period distributions
+    // Details: historical period percentiles
 
-    function initializeDistributionDetails() {
-        const data = MODELS.map(model => ({
-            type: "scatter",
-            x: [NaN],
-            y: META.percentiles,
-            name: "",
-            text: `${model.gcm} ${model.rcm}`, // TODO
-            marker: {size: 1, symbol: RCM_SYMBOLS[model.rcm]},
-            line: {width: 1.5, color: GCM_COLORS[model.gcm]},
-        }));
-        const layout = {
-            height: 600,
-            margin: {l: 75, r: 25},
-            showlegend: false,
-            xaxis: {
-                title: {text: getVarName("tas")}, // TODO
-                ticksuffix: " °C" // TODO
-            },
-            yaxis: {
-                title: {text: "Percentile"}, // TODO
-                ticksuffix: "%" // TODO
-            }
-        };
+    function initializePercentilesDetails() {
         const config = {
             responsive: true,
             modeBarButtonsToRemove: ["select2d", "lasso2d"]
         };
-        return Plotly.newPlot(DOM.getNode(`distribution-tas`), data, layout, config);
+        return Promise.all(VARIABLES.map((variable) => {
+            const data = [{
+                type: "heatmap",
+                x: META.percentiles.map(p => `${p} %`),
+                y: META.models.map(model => `${model.gcm} ${model.rcm}`),
+                coloraxis: 'coloraxis'
+            }];
+            const layout = {
+                height: 600,
+                margin: {l: 75, r: 25},
+                xaxis: {
+                    title: {text: "Percentile"}, // TODO
+                    //ticksuffix: "%" // TODO
+                },
+                coloraxis: {
+                    colorscale: COLORAXIS[variable].colorscale,
+                    cauto: true,
+                    cmid: COLORAXIS[variable].cmid,
+                }
+            };
+            return Plotly.newPlot(DOM.getNode(`percentiles-${variable}`), data, layout, config);
+        }));
     }
 
-    function updateDistributionDetails() {
+    function updatePercentilesDetails() {
         if (selection == null || selection.data == null) {
             return; // TODO
         }
-        const data = {
-            x: selection.data.map(model => null2NaN(model["tas"].perc.values)), // TODO all variables
-            visible: modelSelectionBoxes.map(_ => _.checked)
-        };
         const layout = {};
-        return Plotly.update(DOM.getNode(`distribution-tas`), data, layout);
+        return Promise.all(VARIABLES.map((variable) => {
+            const data = {
+                z: [selection.data.map(model => null2NaN(model[variable].perc.values))],
+                //visible: modelSelectionBoxes.map(_ => _.checked) TODO
+            };
+            return Plotly.update(DOM.getNode(`percentiles-${variable}`), data, layout);
+        }));
     }
 
     // Details: uncertainty

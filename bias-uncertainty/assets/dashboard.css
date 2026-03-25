@@ -142,9 +142,6 @@ details:not([open]) summary h2::after {
     display: block;
     cursor: pointer;
 }
-#dashboard-models span.ens-name {
-    color: #999;
-}
 #dashboard-controls {
     background-color: rgb(245,245,245);
 }

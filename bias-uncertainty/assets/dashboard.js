@@ -182,6 +182,10 @@ function applyAlongEns(func, xss) {
     ));
 }
 
+function getStyledModelLabel(model) {
+    return `<span style="color:${GCM_COLORS[model.gcm]};">${model.gcm}</span> ${model.rcm} <span style="color:#999;">(${model.ens})</span>`;
+} 
+
 async function runBiasDashboard() {
 
     // Cached data retrieval
@@ -267,7 +271,7 @@ async function runBiasDashboard() {
                         period: META.variables[v].bias.period,
                     },
                     perc: {
-                        values: details[v][i].perc,
+                        values: details[v][i][`perc-${reference}`],
                         percentiles: META.percentiles,
                         unit: META.variables[v].perc.unit,
                     }
@@ -551,20 +555,24 @@ async function runBiasDashboard() {
             const data = [{
                 type: "heatmap",
                 x: META.percentiles.map(p => `${p} %`),
-                y: META.models.map(model => `${model.gcm} ${model.rcm}`),
+                y: META.models.map(getStyledModelLabel),
                 coloraxis: 'coloraxis'
             }];
             const layout = {
                 height: 600,
-                margin: {l: 75, r: 25},
+                margin: {l: 0, r: 425},
                 xaxis: {
                     title: {text: "Percentile"}, // TODO
                     //ticksuffix: "%" // TODO
+                },
+                yaxis: {
+                    side: "right",
                 },
                 coloraxis: {
                     colorscale: COLORAXIS[variable].colorscale,
                     cauto: true,
                     cmid: COLORAXIS[variable].cmid,
+                    showscale: false,
                 }
             };
             return Plotly.newPlot(DOM.getNode(`percentiles-${variable}`), data, layout, config);
@@ -575,7 +583,10 @@ async function runBiasDashboard() {
         if (selection == null || selection.data == null) {
             return; // TODO
         }
-        const layout = {};
+        const reference = DOM.getNode("reference").value;  // TODO
+        const layout = {
+            title: {text: `Model bias against ${reference.toUpperCase()}: ${selection.NUTS_NAME} (${selection.NUTS_ID})`}
+        };
         return Promise.all(VARIABLES.map((variable) => {
             const data = {
                 z: [selection.data.map(model => null2NaN(model[variable].perc.values))],
@@ -722,7 +733,7 @@ async function runBiasDashboard() {
                 updateDetails();
             });
             fieldset.appendChild(DOM.newNode("label", null, [
-                input, " ", model.rcm, DOM.newNode("span", {"class": "ens-name"}, " (" + model.ens + ")")
+                input, " ", model.rcm, DOM.newNode("span", {"style": "color:#999;"}, " (" + model.ens + ")")
             ]));
             modelSelectionBoxes[i] = input;
         }

@@ -570,8 +570,8 @@ async function runBiasDashboard() {
                 },
                 coloraxis: {
                     colorscale: COLORAXIS[variable].colorscale,
-                    cauto: true,
-                    cmid: COLORAXIS[variable].cmid,
+                    cmin: COLORAXIS[variable].cmin,
+                    cmax: COLORAXIS[variable].cmax,
                     showscale: false,
                 }
             };

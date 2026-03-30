@@ -95,7 +95,6 @@ const COLORAXIS = {
     }
 };
 
-
 // Bias scatter plot configuration
 const BIAS_VAR_X = "pr";
 const BIAS_VAR_Y = "tas";
@@ -438,7 +437,7 @@ async function runBiasDashboard() {
 
     function initializeDetails() {
         return Promise.all([
-            initializeBiasDetails(),
+            initializeBiasScatter(),
             initializePercentilesDetails(),
             initializeUncertaintyDetails(),
         ]);
@@ -447,7 +446,7 @@ async function runBiasDashboard() {
     function updateDetails() {
         return Promise.all([
             updateRegionDetails(),
-            updateBiasDetails(),
+            updateBiasScatter(),
             updatePercentilesDetails(),
             updateUncertaintyDetails(),
         ]);
@@ -469,7 +468,7 @@ async function runBiasDashboard() {
 
     // Details: model bias
 
-    function initializeBiasDetails() {
+    function initializeBiasScatter() {
         const dataBias = MODELS.map((model) => ({
             type: "scatter",
             x: [NaN],
@@ -514,7 +513,7 @@ async function runBiasDashboard() {
         return Plotly.newPlot(DOM.getNode("bias"), dataBias, layoutBias, config);
     }
 
-    function updateBiasDetails() {
+    function updateBiasScatter() {
         if (selection == null || selection.data == null) {
             DOM.getNode("smallest-pr").textContent = "no selection";
             DOM.getNode("smallest-tas").textContent = "no selection";
@@ -556,14 +555,16 @@ async function runBiasDashboard() {
                 type: "heatmap",
                 x: META.percentiles.map(p => `${p} %`),
                 y: META.models.map(getStyledModelLabel),
-                coloraxis: 'coloraxis'
+                name: "",
+                coloraxis: 'coloraxis',
+                hovertemplate: "Percentile: %{x}<br>Bias: %{z} " + getUnit(variable, "perc"),
             }];
             const layout = {
                 height: 600,
                 margin: {l: 0, r: 425},
                 xaxis: {
-                    title: {text: "Percentile"}, // TODO
-                    //ticksuffix: "%" // TODO
+                    title: {text: "Percentile"},
+                    tickvals: META.percentiles,
                 },
                 yaxis: {
                     side: "right",
@@ -815,7 +816,8 @@ async function runBiasDashboard() {
         // The reference selector of the map also controls the reference
         // for the bias section in the details
         await refreshData();
-        updateBiasDetails();
+        updateBiasScatter();
+        updateDetails();
     });
     DOM.getNode("autoscale").addEventListener("change", updateMapValues);
     // Search box

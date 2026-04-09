@@ -209,7 +209,6 @@ async function runBiasDashboard() {
     const CORDEX = await fetchData("eurocordex.geojson");
     const NUTS = await fetchData("regions.geojson");
     const META = await fetchData("metadata.json");
-    const MODELS = META.models;
 
     function getNutsFeature(nuts_id) {
         for (const feature of NUTS.features) {
@@ -240,6 +239,11 @@ async function runBiasDashboard() {
         return getVarName(v);
     }
 
+    function getBiasPlotTitle() {
+        const reference = DOM.getNode("reference").value;
+        return `Model bias against ${reference.toUpperCase()}: ${selection.NUTS_NAME} (${selection.NUTS_ID})`;
+    }
+
     // Application state: keep all information on selected region
     // or null if no region is selected
     let selection = null;
@@ -257,7 +261,10 @@ async function runBiasDashboard() {
         const details = await getDetailsData(nutsID);
         // Attach metadata to data and merge bias data (optimized for map)
         // and details data (optimized for region)
-        data = MODELS.map((model, i) => {
+        data = META.models.map((model, i) => {
+            if (!modelSelectionBoxes[i].checked) {
+                return null;
+            }
             const out = {};
             out.model = model;
             for (const v of VARIABLES) {
@@ -270,6 +277,7 @@ async function runBiasDashboard() {
                         period: META.variables[v].bias.period,
                     },
                     perc: {
+                        reference: reference,
                         values: details[v][i][`perc-${reference}`],
                         percentiles: META.percentiles,
                         unit: META.variables[v].perc.unit,
@@ -290,7 +298,7 @@ async function runBiasDashboard() {
             NUTS_ID: nutsID,
             geometry: nuts.geometry,
             ...nuts.properties,
-            data: data
+            data: data.filter(d => d != null)
         };
         // Allow direct links to specific regions
         window.location.hash = nutsID;
@@ -471,20 +479,14 @@ async function runBiasDashboard() {
     // Details: model bias
 
     function initializeBiasScatter() {
-        const dataBias = MODELS.map((model) => ({
+        const dataBias = [{
             type: "scatter",
             x: [NaN],
             y: [NaN],
             mode: "markers",
             name: "",
-            text: [model],
             hovertemplate: BIAS_HOVER_TEMPLATE,
-            marker: {
-                size: 12,
-                color: GCM_COLORS[model.gcm],
-                symbol: RCM_SYMBOLS[model.rcm]
-            },
-        }));
+        }];
         const layoutBias = {
             height: 600,
             margin: {l: 75, r: 25},
@@ -516,31 +518,32 @@ async function runBiasDashboard() {
     }
 
     function updateBiasScatter() {
-        if (selection == null || selection.data == null) {
+        if (selection == null || selection.data == null || selection.data.length == 0) {
             DOM.getNode("smallest-pr").textContent = "no selection";
             DOM.getNode("smallest-tas").textContent = "no selection";
             return;
         }
-        const reference = DOM.getNode("reference").value;
-        const visible = selection.data.map((model, i) => modelSelectionBoxes[i].checked);
         // Update bias scatter plot
         const dataBias = {
-            x: selection.data.map(model => [model[BIAS_VAR_X].bias.value]),
-            y: selection.data.map(model => [model[BIAS_VAR_Y].bias.value]),
-            visible: visible,
+            "x": [selection.data.map(d => d[BIAS_VAR_X].bias.value)],
+            "y": [selection.data.map(d => d[BIAS_VAR_Y].bias.value)],
+            "text": [selection.data.map(d => d.model)],
+            "marker.color": [selection.data.map(d => GCM_COLORS[d.model.gcm])],
+            "marker.symbol": [selection.data.map(d => RCM_SYMBOLS[d.model.rcm])],
+            "marker.size": 12,
         };
         // Info box: models with smallest bias in each variable
         for (const v of VARIABLES) {
-            const [value, idx] = closestToZero(selection.data.map((m, i) => (visible[i] ? m[v].bias.value : NaN)));
+            const [value, idx] = closestToZero(selection.data.map(m => m[v].bias.value));
             if (!isFinite(value) || value == null) {
                 DOM.getNode(`smallest-${v}`).textContent = "no data";
             } else {
-                const model = MODELS[idx];
+                const model = selection.data[idx].model;
                 DOM.getNode(`smallest-${v}`).textContent = `GCM: ${model.gcm}, RCM: ${model.rcm}, Member: ${model.ens} (${value} ${getUnit(v, "bias")})`;
             }
         }
         const layoutBias = {
-            title: {text: `Model bias against ${reference.toUpperCase()}: ${selection.NUTS_NAME} (${selection.NUTS_ID})`}
+            title: {text: getBiasPlotTitle()}
         };
         return Plotly.update(DOM.getNode("bias"), dataBias, layoutBias);
     }
@@ -555,8 +558,6 @@ async function runBiasDashboard() {
         return Promise.all(VARIABLES.map((variable) => {
             const data = [{
                 type: "heatmap",
-                x: META.percentiles.map(p => `${p} %`),
-                y: META.models.map(getStyledModelLabel),
                 name: "",
                 coloraxis: 'coloraxis',
                 hovertemplate: "Percentile: %{x}<br>Bias: %{z} " + getUnit(variable, "perc"),
@@ -564,13 +565,6 @@ async function runBiasDashboard() {
             const layout = {
                 height: 600,
                 margin: {l: 0, r: 425},
-                xaxis: {
-                    title: {text: "Percentile"},
-                    tickvals: META.percentiles,
-                },
-                yaxis: {
-                    side: "right",
-                },
                 coloraxis: {
                     colorscale: COLORAXIS[variable].colorscale,
                     cmin: COLORAXIS[variable].cmin,
@@ -583,19 +577,26 @@ async function runBiasDashboard() {
     }
 
     function updatePercentilesDetails() {
-        if (selection == null || selection.data == null) {
+        if (selection == null || selection.data == null || selection.data.length == 0) {
             return; // TODO
         }
-        const reference = DOM.getNode("reference").value;  // TODO
-        const layout = {
-            title: {text: `Model bias against ${reference.toUpperCase()}: ${selection.NUTS_NAME} (${selection.NUTS_ID})`}
-        };
         return Promise.all(VARIABLES.map((variable) => {
             const data = {
-                z: [selection.data.map(model => null2NaN(model[variable].perc.values))],
+                x: [selection.data[0][variable].perc.percentiles.map(p => `${p} %`)],
+                y: [selection.data.map(d => getStyledModelLabel(d.model))],
+                z: [selection.data.map(d => null2NaN(d[variable].perc.values))],
                 //texttemplate: "%{z}",
-                //visible: modelSelectionBoxes.map(_ => _.checked) TODO
             };
+            const layout = {
+                title: {text: getBiasPlotTitle()},
+                xaxis: {
+                    title: {text: "Percentile"},
+                    tickvals: META.percentiles,
+                },
+                yaxis: {
+                    side: "right",
+                },
+            }
             return Plotly.update(DOM.getNode(`percentiles-${variable}`), data, layout);
         }));
     }
@@ -660,11 +661,8 @@ async function runBiasDashboard() {
             return; // TODO
         }
         const scenario = DOM.getNode("scenario").value;
-        const visible = selection.data.map((model, i) => modelSelectionBoxes[i].checked);
         return Promise.all(VARIABLES.map(v => {
-            const ensValues = selection.data.map(
-                (model, i) => visible[i] ? model[v][scenario].values : null
-            );
+            const ensValues = selection.data.map(model => model[v][scenario].values);
             let ensMean = applyAlongEns(OPERATORS.mean, ensValues);
             let ensMin = applyAlongEns(OPERATORS.minimum, ensValues);
             let ensMax =  applyAlongEns(OPERATORS.maximum, ensValues);
@@ -723,17 +721,18 @@ async function runBiasDashboard() {
     function generateModelSelection() {
         const modelSelection = DOM.getNode("models");
         let fieldset = null;
-        for (let i = 0; i < MODELS.length; i++) {
-            const model = MODELS[i];
-            if (i == 0 || MODELS[i-1].gcm != model.gcm) {
+        for (let i = 0; i < META.models.length; i++) {
+            const model = META.models[i];
+            if (i == 0 || META.models[i-1].gcm != model.gcm) {
                 fieldset = DOM.newNode("fieldset", null, [
                     DOM.newNode("legend", {style: `color: ${GCM_COLORS[model.gcm]}`}, [model.gcm])
                 ]);
                 modelSelection.appendChild(fieldset);
             }
             const input = DOM.newNode("input", {"type": "checkbox", "checked": "checked"});
-            input.addEventListener("change", () => {
+            input.addEventListener("change", async () => {
                 updateMapValues();
+                await refreshData();
                 updateDetails();
             });
             fieldset.appendChild(DOM.newNode("label", null, [

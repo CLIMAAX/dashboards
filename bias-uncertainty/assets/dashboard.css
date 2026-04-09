@@ -11,9 +11,9 @@ body > * {
 h1, h2 {
     color: #393939;
     font-weight: 800;
-    margin-top: 10px;
-    margin-bottom: 0;
+    margin: 0;
     padding-bottom: 10px; /* avoid margin collapse */
+    border-bottom: 1px solid rgba(0, 0, 0, 0.15);
 }
 p {
     line-height: 160%;
@@ -26,14 +26,19 @@ a:hover {
     color: #F47A00;
 }
 select {
-    padding: 5px 10px 5px 5px;
+    padding: 5px 10px;
     font-size: 100%;
 }
 .header {
+    position: sticky;
+    top: 0;
+    z-index: 999;
+    background-color: #FFF;
     display: flex;
     flex-direction: row;
     flex-wrap: wrap;
     align-items: center;
+    padding: 5px;
 }
 .header .links {
     flex: 0 0 auto;
@@ -41,17 +46,15 @@ select {
 .header .links img {
     max-height: 60px;
 }
-.header .search {
-    flex: 1 1;
+.header .spacer {
+    flex-grow: 1;
+    min-width: 5px;
 }
 #dashboard-details {
     margin-top: 50px;
 }
 details, .details {
-    border: 1px solid #CCC;
-    border-radius: 10px;
-    padding: 30px;
-    box-shadow: rgba(0, 0, 0, 0.15) 2px 2px 2.5px;
+    padding: 10px;
 }
 details summary {
     display: block;
@@ -63,6 +66,9 @@ details:not([open]) summary h2::after {
     font-size: 60%;
     font-weight: normal;
     margin-left: 1em;
+}
+#dashboard-title {
+    scroll-margin-top: 120px;
 }
 .side-by-side {
     display: flex;
@@ -157,6 +163,7 @@ details:not([open]) summary h2::after {
     margin-top: 10px;
 }
 #dashboard-search {
+    display: block;
     border: 1px solid #CCC;
     border-radius: 10px;
     background-color: rgb(245,245,245);
@@ -164,7 +171,6 @@ details:not([open]) summary h2::after {
     padding: 10px;
     position: relative;
     box-shadow: rgba(0, 0, 0, 0.15) 1px 1px 2.5px;
-    margin: 0 auto;
 }
 #dashboard-search-input {
     font-size: 110%;

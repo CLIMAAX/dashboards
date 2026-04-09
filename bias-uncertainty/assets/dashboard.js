@@ -460,6 +460,8 @@ async function runBiasDashboard() {
         DOM.getNode("title").textContent = none ? "no selection" : selection.NUTS_NAME;
         DOM.getNode("latin-name").textContent = none ? "n/a" : selection.NAME_LATN;
         DOM.getNode("nuts-id").textContent = none ? "n/a" : selection.NUTS_ID;
+        // Use placeholder content of search bar as a makeshift title
+        DOM.getNode("search-input").setAttribute("placeholder", none ? "select a region to see details" : selection.NUTS_NAME);
         // Offer selected data for download
         const exportButton = DOM.getNode("export-json");
         exportButton.setAttribute("href", "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(selection)));
@@ -591,6 +593,7 @@ async function runBiasDashboard() {
         return Promise.all(VARIABLES.map((variable) => {
             const data = {
                 z: [selection.data.map(model => null2NaN(model[variable].perc.values))],
+                //texttemplate: "%{z}",
                 //visible: modelSelectionBoxes.map(_ => _.checked) TODO
             };
             return Plotly.update(DOM.getNode(`percentiles-${variable}`), data, layout);
@@ -777,7 +780,7 @@ async function runBiasDashboard() {
         await selectData(nutsID);
         updateMapSelection();
         updateDetails();
-        DOM.scrollTo("details");
+        DOM.scrollTo("title");
     }
 
     // Populate GUI

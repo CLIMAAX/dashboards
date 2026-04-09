@@ -18,14 +18,18 @@
         <div class="links">
             <a href="https://www.climaax.eu"><img src="assets/climaax.png" alt="CLIMAAX"></a>
         </div>
-        <div class="search">
+        <div class="spacer"></div>
+        <div class="selectors">
             <div id="dashboard-search">
-                <input type="text" id="dashboard-search-input" placeholder="select a region to see details">
+                <input type="text" id="dashboard-search-input">
                 <div id="dashboard-search-dropdown" style="display: none;">
                     <div id="dashboard-search-results"></div>
                 </div>
             </div>
         </div>
+        <div class="spacer"></div>
+        <div><select id="dashboard-reference"></select></div>
+        <div class="spacer"></div>
         <div class="links">
             <a href="https://github.com/CLIMAAX/dashboards"><img src="assets/github.svg" alt="GitHub"></a>
         </div>
@@ -35,10 +39,9 @@
         <div id="dashboard-map"></div>
         <div id="dashboard-models">
         <fieldset id="dashboard-controls">
-            <legend>Settings</legend>
+            <legend>Map settings</legend>
             <select id="dashboard-variable"></select>
             <select id="dashboard-operator"></select>
-            <select id="dashboard-reference"></select>
             <label title="Let the colorbar range adjust to the data. Avoids clipping of data but removes comparability between different maps for the same variable.">
                 <input type="checkbox" id="dashboard-autoscale">
                 autoscale colorbar
@@ -120,9 +123,6 @@
         </div>
     </details>
 
-    <div class="footer">
-        <p><a href="javascript:document.getElementById('dashboard-search').scrollIntoView({behavior:'smooth'});">back to top</a></p>
-    </div>
     <div class="credits">
         <p>
             <a href="https://orcid.org/0000-0002-5022-1026">Majid Niazkar <img alt="ORCID iD icon" src="https://orcid.org/sites/default/files/images/orcid_16x16.png"></a>,

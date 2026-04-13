@@ -152,6 +152,19 @@ function capitalizeFirst(s) {
     return s.charAt(0).toUpperCase() + s.substring(1);
 }
 
+function lightenColor(color) {
+    // good enough!
+    switch (color) {
+        case "green": return "#d7e9d7";
+        case "red": return "#ffd7d7";
+        case "orange": return "#fff0d7";
+        case "blue": return "#d7d7ff";
+        case "purple": return "#e9d7e9";
+        case "black": return "#d7d7d7";
+        default: return color;
+    }
+}
+
 function null2NaN(xs) {
     return xs == null ? [NaN] : xs.map(x => (x != null ? x : NaN));
 }
@@ -261,7 +274,8 @@ async function runBiasDashboard() {
         const details = await getDetailsData(nutsID);
         // Attach metadata to data and merge bias data (optimized for map)
         // and details data (optimized for region)
-        data = META.models.map((model, i) => {
+        const data = META.models.map((model, i) => {
+            // Skip models excluded by user selection
             if (!modelSelectionBoxes[i].checked) {
                 return null;
             }
@@ -302,6 +316,21 @@ async function runBiasDashboard() {
         };
         // Allow direct links to specific regions
         window.location.hash = nutsID;
+        // ...
+        const ensCenterOptions = [
+            
+            
+        ];
+        console.log(ensCenterOptions);
+        DOM.getNode("ensemble-center").replaceChildren(
+            DOM.newNode("option", {"value": "ensmean"}, ["ensemble mean"]),
+            ...selection.data.map((d, i) => DOM.newNode(
+                "option",
+                {"value": i},
+                [`${d.model.gcm} ${d.model.rcm} ${d.model.ens}`]
+            )),
+            DOM.newNode("option", {"value": "none"}, ["absolute"])
+        );
     }
 
     async function refreshData() {
@@ -616,26 +645,41 @@ async function runBiasDashboard() {
             );
             const data = [
                 {
-                    name: "ensemble minimum",
+                    name: "",
                     type: "scatter",
+                    mode: "lines",
                     x: periodTicks,
                     y: [NaN],
-                    line: {color: "lightgrey"}
+                    line: {width: 1},
+                    hovertemplate: "%{y}<br>lower uncertainty range<br>%{x}",
                 },
                 {
-                    name: "ensemble maximum",
+                    name: "",
                     type: "scatter",
+                    mode: "lines",
                     x: periodTicks,
                     y: [NaN],
-                    line: {color: "lightgrey"},
-                    fill: "tonexty"
+                    fill: "tonexty",
+                    line: {width: 1},
+                    hovertemplate: "%{y}<br>upper uncertainty range<br>%{x}",
                 },
                 {
-                    name: "ensemble mean",
+                    name: "",
                     type: "scatter",
+                    mode: "lines",
                     x: periodTicks,
                     y: [NaN],
-                    line: {color: "black"}
+                    line: {dash: "dot", width: 3},
+                    hovertemplate: "%{y}<br>ensemble mean<br>%{x}"
+                },
+                {
+                    name: "",
+                    type: "scatter",
+                    mode: "lines+markers",
+                    x: periodTicks,
+                    y: periodTicks.map(_ => 0.),
+                    visible: false,
+                    marker: {size: 12},
                 }
             ];
             const layout = {
@@ -661,23 +705,71 @@ async function runBiasDashboard() {
             return; // TODO
         }
         const scenario = DOM.getNode("scenario").value;
+        // ...
+        const centerNode = DOM.getNode("ensemble-center");
+        for (const option of centerNode.getElementsByTagName("option")) {
+            const idx = parseInt(option.value);
+            if (isNaN(idx)) {
+                continue;
+            }
+            option.disabled = !VARIABLES.every(v => {
+                const values = selection.data[idx][v][scenario].values;
+                return values != null && values.length > 1;
+            });
+            // Revert to safe option if current model doesn't have data
+            if (option.disabled && option.selected) {
+                centerNode.value = "ensmean";
+            }
+        }
+        // ...
+        const center = centerNode.value;
+        const member = (center == "none" || center == "ensmean") ? null : selection.data[parseInt(center)];
         return Promise.all(VARIABLES.map(v => {
             const ensValues = selection.data.map(model => model[v][scenario].values);
             let ensMean = applyAlongEns(OPERATORS.mean, ensValues);
             let ensMin = applyAlongEns(OPERATORS.minimum, ensValues);
-            let ensMax =  applyAlongEns(OPERATORS.maximum, ensValues);
-            if (DOM.getNode("removeensfromuncertainty").checked) {
-                ensMin = ensMin.map((x, i) => x - ensMean[i]);
-                ensMax = ensMax.map((x, i) => x - ensMean[i]);
-                ensMean = ensMean.map(() => 0.);
+            let ensMax = applyAlongEns(OPERATORS.maximum, ensValues);
+            // Determine center
+            let centerValues = null;
+            if (member != null) {
+                centerValues = member[v][scenario].values;
+            } else if (center === "none") {
+                centerValues = Array(selection.data.length).fill(0.);
+            } else if (center === "ensmean") {
+                centerValues = ensMean;
+            } else {
+                return; // TODO
             }
-            const dataProj = {
-                y: [ensMin, ensMax, ensMean]
+            ensMin = ensMin.map((x, i) => x - centerValues[i]);
+            ensMax = ensMax.map((x, i) => x - centerValues[i]);
+            ensMean = ensMean.map((x, i) => x - centerValues[i]);
+            const primaryColor = (member == null) ? "black" : GCM_COLORS[member.model.gcm];
+            const dataEns = {
+                "y": [ensMin, ensMax, ensMean],
+                "line.color": [primaryColor, primaryColor, "black"],
+                "fillcolor": lightenColor(primaryColor)
             };
-            const layoutProj = {
-                title: {text: `${getProjLabel(v)}: ${selection.NUTS_NAME} (${selection.NUTS_ID})`}
+            const layout = {
+                title: {text: (
+                    `${getProjLabel(v)} projection uncertainty<br>` +
+                    `${selection.NUTS_NAME} (${selection.NUTS_ID})`
+                )
+                }
             };
-            return Plotly.update(DOM.getNode(`uncertainty-${v}`), dataProj, layoutProj);
+            const dataMem = {visible: (member != null)};
+            if (member != null) {
+                dataMem["line.color"] = primaryColor;
+                dataMem["marker.symbol"] = RCM_SYMBOLS[member.model.rcm];
+                dataMem["hovertemplate"] = (
+                    `<b>GCM:</b> ${member.model.gcm}<br>` +
+                    `<b>RCM:</b> ${member.model.rcm}<br>` +
+                    `<b>ENS:</b> ${member.model.ens}<br>`
+                );
+            }
+            return Promise.all([
+                Plotly.update(DOM.getNode(`uncertainty-${v}`), dataEns, layout, [0, 1, 2]),
+                Plotly.restyle(DOM.getNode(`uncertainty-${v}`), dataMem, [3]),
+            ]);
         }));
     }
 
@@ -833,7 +925,7 @@ async function runBiasDashboard() {
     });
     // Details controls
     DOM.getNode("scenario").addEventListener("change", updateUncertaintyDetails);
-    DOM.getNode("removeensfromuncertainty").addEventListener("change", updateUncertaintyDetails);
+    DOM.getNode("ensemble-center").addEventListener("change", updateUncertaintyDetails);
 }
 
 document.addEventListener("DOMContentLoaded", runBiasDashboard);

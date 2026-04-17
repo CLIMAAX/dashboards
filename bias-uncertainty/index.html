@@ -92,14 +92,54 @@
         <summary>
             <h2>Model Bias: Temperature Percentiles</h2>
         </summary>
+        <p>
+            The temperature bias shown in the figures above is the bias of the mean temperature over the 1971-2000 period.
+            While this is a good summary-indicator of model bias, it is not necessarily a good indicator of model bias for extreme events.
+            However, the extremes of the temperature distribution are often the most relevant when analysing model projections in the context of climate risk assessment.
+        </p>
+        <p>
+            Here, the biases of each model are shown for individual percentiles of the temperature distribution.
+            Each row of the plot represents one model, the color represents the bias (<span style="color:#c03438;">red: model has warm bias</span>, <span style="color:#1d5da0;">blue: model has cold bias</span>; hover to see the values).
+            The low percentiles of the distribution correspond to cold extremes, while high percentiles of the distribution correspond to warm extremes.
+        </p>
         <div id="dashboard-percentiles-tas"></div>
+        <div class="note">
+            <h3>How to read the patterns: two examples</h3>
+            <p>
+                If a row is all the same color, the model has a consistent bias across all values.
+                E.g., if everything is blue, the model is always too cold.
+            </p>
+            <p>
+                If a row starts red and transitions to blue for the high percentiles, the model has less temperature variability than the reference dataset.
+                Cold extremes are warmer than they should be, warm extremes are colder than they should be.
+            </p>
+        </div>
     </details>
 
     <details>
         <summary>
             <h2>Model Bias: Precipitation Percentiles</h2>
         </summary>
+        <p>
+            The precipitation bias shown in the figures above is the bias of the mean yearly precipitation total over the 1971-2000 period.
+            While this is a good summary-indicator of model bias, it is not necessarily a good indicator of model bias for extreme events.
+            However, the extremes of the precipitation distribution are often the most relevant when analysing model projections in the context of climate risk assessment.
+        </p>
+        <p>
+            Here, the biases of each model are shown for individual percentiles of the <strong>TODO 24-h/yearly mean/???</strong> precipitation distribution.
+            Each row of the plot represents one model, the color represents the bias (<span style="color:#015a50;">green: model has wet bias</span>, <span style="color:#824b09;">brown: model has dry bias</span>; hover to see the values).
+            The high percentiles of the distribution correspond to heavy precpitation extremes.
+        </p>
         <div id="dashboard-percentiles-pr"></div>
+        <div class="note">
+            <h3>Precipitation bias as percentage</h3>
+            <p>
+                The precipitation bias is given as a percentage of the reference precipitation (relative bias).
+                Values indicating dry bias are limited to at most -100%, where the model predicts no precipitation at all.
+                In contrast, the percentages for wet biases are not limited and can exceed 100%.
+                If there is no or only very little precipitation in a reference percentile, the bias percentage becomes very large even for small model biases in absolute terms.
+                Examples for these limitations can be seen, e.g., in the low percentiles for Cyprus (CY00).
+            </p>
         </div>
     </details>
 

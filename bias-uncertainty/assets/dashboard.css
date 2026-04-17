@@ -29,6 +29,9 @@ select {
     padding: 5px 10px;
     font-size: 100%;
 }
+p > select {
+    margin-right: 1em;
+}
 .header {
     position: sticky;
     top: 0;

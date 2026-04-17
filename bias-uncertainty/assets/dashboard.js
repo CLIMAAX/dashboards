@@ -317,11 +317,6 @@ async function runBiasDashboard() {
         // Allow direct links to specific regions
         window.location.hash = nutsID;
         // ...
-        const ensCenterOptions = [
-            
-            
-        ];
-        console.log(ensCenterOptions);
         DOM.getNode("ensemble-center").replaceChildren(
             DOM.newNode("option", {"value": "ensmean"}, ["ensemble mean"]),
             ...selection.data.map((d, i) => DOM.newNode(
@@ -329,7 +324,7 @@ async function runBiasDashboard() {
                 {"value": i},
                 [`${d.model.gcm} ${d.model.rcm} ${d.model.ens}`]
             )),
-            DOM.newNode("option", {"value": "none"}, ["absolute"])
+            DOM.newNode("option", {"value": "none"}, ["none (absolute projection)"])
         );
     }
 
@@ -684,7 +679,7 @@ async function runBiasDashboard() {
             ];
             const layout = {
                 height: 400,
-                margin: {l: 75, r: 25},
+                margin: {l: 100, r: 50},
                 showlegend: false,
                 yaxis: {
                     title: {text: getProjLabel(variable)},

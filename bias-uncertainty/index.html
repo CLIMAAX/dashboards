@@ -121,14 +121,14 @@
             <h2>Model Bias: Precipitation Percentiles</h2>
         </summary>
         <p>
-            The precipitation bias shown in the figures above is the bias of the mean yearly precipitation total over the 1971-2000 period.
+            The precipitation bias shown in the figures above is the bias of the mean yearly total precipitation over the 1971-2000 period.
             While this is a good summary-indicator of model bias, it is not necessarily a good indicator of model bias for extreme events.
             However, the extremes of the precipitation distribution are often the most relevant when analysing model projections in the context of climate risk assessment.
         </p>
         <p>
-            Here, the biases of each model are shown for individual percentiles of the <strong>TODO 24-h/yearly mean/???</strong> precipitation distribution.
+            Here, the biases of each model are shown for individual percentiles of the yearly total precipitation distribution.
             Each row of the plot represents one model, the color represents the bias (<span style="color:#015a50;">green: model has wet bias</span>, <span style="color:#824b09;">brown: model has dry bias</span>; hover to see the values).
-            The high percentiles of the distribution correspond to heavy precpitation extremes.
+            The high percentiles of the distribution correspond to heavy precipitation extremes.
         </p>
         <div id="dashboard-percentiles-pr"></div>
         <div class="note">
@@ -153,15 +153,17 @@
             Generally, the more models are involved in the comparison, the more reliable the estimate of uncertainty becomes.
         </p>
         <p>
-            Model uncertainty is here represented by the spread of the model ensemble about the ensemble mean or a specific model (select below).
+            Model uncertainty is here represented by the spread of the model ensemble relative to the ensemble mean an individual model projection or in absolute terms (select with the dropdown below).
             The range between the most extreme predictions of the ensemble is a simple measure of the uncertainty.
             The position of a selected reference model within that range tells us on which side of the values we can expect more uncertainty.
             For example, a model in the lower part of the temperature uncertainty range has more uncertainty towards warmer temperatures than colder temperatures.
         </p>
-        <p>The average uncertainty range was evaluated for temperature and precipitation over the historical (1986-2005) and four future time periods (2021-2040, 2041-2060, 2061-2080, and 2081-2100) based on monthly data without bias correction for the NUTS2 regions and for three RCP scenarios (select below; not all models available for all scenarios).</p>
         <p>
-            Scenario <select id="dashboard-scenario"></select>
-            Show the uncertainty range relative to <select id="dashboard-ensemble-center">
+            The average uncertainty range was evaluated for temperature and precipitation over the historical (1986-2005) and four future time periods (2021-2040, 2041-2060, 2061-2080, and 2081-2100) based on monthly data without bias correction for the NUTS2 regions and for three RCP scenarios (select below; not all models available for all scenarios).
+        </p>
+        <p>
+            <strong>Scenario</strong> <select id="dashboard-scenario"></select>
+            <strong>Show the uncertainty range relative to</strong> <select id="dashboard-ensemble-center">
                 <option>ensemble mean</option>
             </select>
         </p>

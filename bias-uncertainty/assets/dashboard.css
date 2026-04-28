@@ -4,16 +4,16 @@ body {
     font-style: normal;
     font-variation-settings: "wdth" 100;
 }
-body > div {
+body > * {
     max-width: 1100px;
     margin: 30px auto;
 }
 h1, h2 {
     color: #393939;
     font-weight: 800;
-}
-h1 {
-    margin-top: 10px;
+    margin: 0;
+    padding-bottom: 10px; /* avoid margin collapse */
+    border-bottom: 1px solid rgba(0, 0, 0, 0.15);
 }
 p {
     line-height: 160%;
@@ -25,11 +25,23 @@ a {
 a:hover {
     color: #F47A00;
 }
+select {
+    padding: 5px 10px;
+    font-size: 100%;
+}
+p > select {
+    margin-right: 1em;
+}
 .header {
+    position: sticky;
+    top: 0;
+    z-index: 999;
+    background-color: #FFF;
     display: flex;
     flex-direction: row;
     flex-wrap: wrap;
     align-items: center;
+    padding: 5px;
 }
 .header .links {
     flex: 0 0 auto;
@@ -37,27 +49,50 @@ a:hover {
 .header .links img {
     max-height: 60px;
 }
-.header .search {
-    flex: 1 1;
+.header .spacer {
+    flex-grow: 1;
+    min-width: 5px;
 }
-.details {
-    border: 1px solid #CCC;
-    border-radius: 10px;
-    padding: 20px 30px;
-    box-shadow: rgba(0, 0, 0, 0.15) 2px 2px 2.5px;
+#dashboard-details {
+    margin-top: 50px;
+}
+details, .details {
+    padding: 10px;
+}
+details summary {
+    display: block;
+    cursor: pointer;
+}
+details:not([open]) summary h2::after {
+    content: "click to expand";
+    color: #999;
+    font-size: 60%;
+    font-weight: normal;
+    margin-left: 1em;
+}
+#dashboard-title {
+    scroll-margin-top: 120px;
 }
 .side-by-side {
     display: flex;
     flex-direction: row;
     flex-wrap: wrap;
-    margin-top: 40px;
 }
-.side-plot {
-    flex: 100 1 500px;
+.side-by-side .left {
+    margin-right: 40px;
 }
-.side-text {
-    flex: 1 0 400px;
-    margin-right: 20px;
+.side-by-side .fixed {
+    flex-grow: 0;
+    flex-shrink: 1;
+    flex-basis: 400px;
+}
+.side-by-side .expand {
+    flex-grow: 100;
+    flex-shrink: 1;
+}
+.side-by-side .equal {
+    flex-grow: 1;
+    flex-shrink: 1;
 }
 .note {
     border-radius: 5px;
@@ -116,9 +151,6 @@ a:hover {
     display: block;
     cursor: pointer;
 }
-#dashboard-models span.ens-name {
-    color: #999;
-}
 #dashboard-controls {
     background-color: rgb(245,245,245);
 }
@@ -126,8 +158,6 @@ a:hover {
     font-weight: bold;
 }
 #dashboard-controls select {
-    padding: 5px 10px 5px 5px;
-    font-size: 100%;
     margin-top: 5px;
     min-width: 220px;
     display: block;
@@ -136,6 +166,7 @@ a:hover {
     margin-top: 10px;
 }
 #dashboard-search {
+    display: block;
     border: 1px solid #CCC;
     border-radius: 10px;
     background-color: rgb(245,245,245);
@@ -143,7 +174,6 @@ a:hover {
     padding: 10px;
     position: relative;
     box-shadow: rgba(0, 0, 0, 0.15) 1px 1px 2.5px;
-    margin: 0 auto;
 }
 #dashboard-search-input {
     font-size: 110%;
@@ -192,4 +222,7 @@ a:hover {
     color: #000;
     margin-left: 10px;
     text-align: center;
+}
+input#dashboard-removeensfromuncertainty {
+    margin-left: 1em;
 }

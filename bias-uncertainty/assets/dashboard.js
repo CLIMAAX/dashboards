@@ -1,9 +1,3 @@
-//require.config({
-//    paths: {
-//        "Plotly": "https://cdn.plot.ly/plotly-3.0.1.min"
-//    }
-//});
-
 const GCM_COLORS = {
     'CNRM-CERFACS-CNRM-CM5': 'green',
     'ICHEC-EC-EARTH': 'red',
@@ -24,11 +18,19 @@ const RCM_SYMBOLS = {
     'MPI-CSC-REMO2009': 'triangle-down'
 };
 
+const SCENARIOS = {
+    "rcp26": "RCP 2.6",
+    "rcp45": "RCP 4.5",
+    "rcp85": "RCP 8.5",
+}
+
+// General selector configuration
+const DEFAULT_REFERENCE = "era5";
+const DEFAULT_SCENARIO = "rcp45";
 
 // Map configuration
 const DEFAULT_MAP_VAR = "tas";
 const DEFAULT_OPERATOR = "mean";
-const DEFAULT_REFERENCE = "era5";
 
 const MAP_HOVER_TEMPLATE = (
     "<b>%{location}</b><br>" +
@@ -93,7 +95,6 @@ const COLORAXIS = {
     }
 };
 
-
 // Bias scatter plot configuration
 const BIAS_VAR_X = "pr";
 const BIAS_VAR_Y = "tas";
@@ -151,6 +152,23 @@ function capitalizeFirst(s) {
     return s.charAt(0).toUpperCase() + s.substring(1);
 }
 
+function lightenColor(color) {
+    // good enough!
+    switch (color) {
+        case "green": return "#d7e9d7";
+        case "red": return "#ffd7d7";
+        case "orange": return "#fff0d7";
+        case "blue": return "#d7d7ff";
+        case "purple": return "#e9d7e9";
+        case "black": return "#d7d7d7";
+        default: return color;
+    }
+}
+
+function null2NaN(xs) {
+    return xs == null ? [NaN] : xs.map(x => (x != null ? x : NaN));
+}
+
 function closestToZero(xs) {
     if (xs.length == 0) {
         return NaN;
@@ -163,6 +181,22 @@ function closestToZero(xs) {
     });
     return [xs[idx], idx];
 }
+
+function applyAlongEns(func, xss) {
+    // Skip no-data entries
+    xss = xss.filter(xs => xs != null);
+    // Output length is length of the longest series of values
+    const n = Math.max(...xss.map(xs => xs.length));
+    // Apply the function along the ensemble dimension (axis 0)
+    return Array.from({length: n}, (_, i) => func(
+        xss.map(xs => xs[i])  // get value from ens member or undefined
+        .filter(x => (x != null && isFinite(x)))  // remove invalid before applying function
+    ));
+}
+
+function getStyledModelLabel(model) {
+    return `<span style="color:${GCM_COLORS[model.gcm]};">${model.gcm}</span> ${model.rcm} <span style="color:#999;">(${model.ens})</span>`;
+} 
 
 async function runBiasDashboard() {
 
@@ -180,11 +214,14 @@ async function runBiasDashboard() {
         return fetchData(`bias-${ref}.json`);
     }
 
+    function getDetailsData(nutsID) {
+        const country = nutsID.substring(0, 2);
+        return fetchData(`details-${country}.json`).then(data => data[nutsID]);
+    }
+
     const CORDEX = await fetchData("eurocordex.geojson");
     const NUTS = await fetchData("regions.geojson");
     const META = await fetchData("metadata.json");
-    const MODELS = META.models;
-    const ATTRS = META.attrs;
 
     function getNutsFeature(nuts_id) {
         for (const feature of NUTS.features) {
@@ -196,32 +233,29 @@ async function runBiasDashboard() {
     }
 
     function getVarName(v) {
-        return capitalizeFirst(ATTRS[v].name);
+        return capitalizeFirst(META.variables[v].name);
+    }
+
+    function getUnit(v, product) {
+        return META.variables[v][product].unit;
+    }
+
+    function getTickSuffix(v, product) {
+        return " " + getUnit(v, product);
     }
 
     function getBiasLabel(v) {
         return getVarName(v) + " bias";
     }
 
-    function getBiasUnit(v) {
-        return ATTRS[v].bias.unit;
+    function getProjLabel(v) {
+        return getVarName(v);
     }
 
-    function getBiasTickSuffix(v) {
-        return " " + getBiasUnit(v);
+    function getBiasPlotTitle() {
+        const reference = DOM.getNode("reference").value;
+        return `Model bias against ${reference.toUpperCase()}: ${selection.NUTS_NAME} (${selection.NUTS_ID})`;
     }
-
-    function getProjUnit(v) {
-        return ATTRS[v].proj.unit;
-    }
-
-    /*function getProjTickSuffix(v) {
-        return " " + getProjUnit(v);
-    }*/
-
-    /*function getProjLabel(v) {
-        return getVarName(v) + " projection";
-    }*/
 
     // Application state: keep all information on selected region
     // or null if no region is selected
@@ -236,32 +270,62 @@ async function runBiasDashboard() {
         const nuts = getNutsFeature(nutsID);
         // Extract data based on selection
         const reference = DOM.getNode("reference").value;
-        const biasData = await getBiasData(reference);
-        const bias = MODELS.map((model, i) => {
-            const out = {
-                model: model,
-                reference: reference,
-                //rank: biasData[nutsID].rank[i]
-            };
-            for (const variable of VARIABLES) {
-                out[variable] = {
-                    value: biasData[nutsID][variable][i],
-                    name: ATTRS[variable].name,
-                    unit: ATTRS[variable].bias.unit,
-                    period: ATTRS[variable].bias.period,
-                };
+        const bias = await getBiasData(reference);
+        const details = await getDetailsData(nutsID);
+        // Attach metadata to data and merge bias data (optimized for map)
+        // and details data (optimized for region)
+        const data = META.models.map((model, i) => {
+            // Skip models excluded by user selection
+            if (!modelSelectionBoxes[i].checked) {
+                return null;
             }
+            const out = {};
+            out.model = model;
+            for (const v of VARIABLES) {
+                out[v] = {
+                    bias: {
+                        reference: reference,
+                        value: bias[nutsID][v][i],
+                        name: META.variables[v].name,
+                        unit: META.variables[v].bias.unit,
+                        period: META.variables[v].bias.period,
+                    },
+                    perc: {
+                        reference: reference,
+                        values: details[v][i][`perc-${reference}`],
+                        percentiles: META.percentiles,
+                        unit: META.variables[v].perc.unit,
+                    }
+                };
+                for (const rcp in SCENARIOS) {
+                    out[v][rcp] = {
+                        values: details[v][i][rcp],
+                        periods: META.variables[v].proj.periods,
+                        unit: META.variables[v].proj.unit,
+                    };
+                }
+            };
             return out;
         });
-        // Extract the selected data from the database
+        // Make the selected information available globally
         selection = {
             NUTS_ID: nutsID,
             geometry: nuts.geometry,
             ...nuts.properties,
-            bias: bias
+            data: data.filter(d => d != null)
         };
         // Allow direct links to specific regions
         window.location.hash = nutsID;
+        // ...
+        DOM.getNode("ensemble-center").replaceChildren(
+            DOM.newNode("option", {"value": "ensmean"}, ["ensemble mean"]),
+            ...selection.data.map((d, i) => DOM.newNode(
+                "option",
+                {"value": i},
+                [`${d.model.gcm} ${d.model.rcm} ${d.model.ens}`]
+            )),
+            DOM.newNode("option", {"value": "none"}, ["none (absolute projection)"])
+        );
     }
 
     async function refreshData() {
@@ -269,6 +333,7 @@ async function runBiasDashboard() {
             return selectData(selection.NUTS_ID);
         }
     }
+
 
     // Map functions
 
@@ -367,7 +432,7 @@ async function runBiasDashboard() {
             )],
             hovertemplate: (
                 MAP_HOVER_TEMPLATE + "<br>" +
-                "<b>Bias:</b> %{z:.2f} " + getBiasUnit(selectedVar)
+                "<b>Bias:</b> %{z:.2f} " + getUnit(selectedVar, "bias")
             )
         };
         const layout = {
@@ -383,7 +448,7 @@ async function runBiasDashboard() {
                         text: getBiasLabel(selectedVar),
                         side: "right"
                     },
-                    ticksuffix: getBiasTickSuffix(selectedVar)
+                    ticksuffix: getTickSuffix(selectedVar, "bias")
                 },
             },
         };
@@ -399,36 +464,59 @@ async function runBiasDashboard() {
         return Plotly.update(mapDiv, data, layout, 1);
     }
 
+
     // Details functions
 
     function initializeDetails() {
-        const promises = [];
-        // Universal config
-        const config = {
-            responsive: true,
-            modeBarButtonsToRemove: ["select2d", "lasso2d"]
-        };
-        // Bias plot
-        const dataBias = MODELS.map((model) => ({
+        return Promise.all([
+            initializeBiasScatter(),
+            initializePercentilesDetails(),
+            initializeUncertaintyDetails(),
+        ]);
+    }
+
+    function updateDetails() {
+        return Promise.all([
+            updateRegionDetails(),
+            updateBiasScatter(),
+            updatePercentilesDetails(),
+            updateUncertaintyDetails(),
+        ]);
+    }
+
+    // Details: information about region
+
+    function updateRegionDetails() {
+        const none = (selection == null);
+        // Generate text content
+        DOM.getNode("title").textContent = none ? "no selection" : selection.NUTS_NAME;
+        DOM.getNode("latin-name").textContent = none ? "n/a" : selection.NAME_LATN;
+        DOM.getNode("nuts-id").textContent = none ? "n/a" : selection.NUTS_ID;
+        // Use placeholder content of search bar as a makeshift title
+        DOM.getNode("search-input").setAttribute("placeholder", none ? "select a region to see details" : selection.NUTS_NAME);
+        // Offer selected data for download
+        const exportButton = DOM.getNode("export-json");
+        exportButton.setAttribute("href", "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(selection)));
+        exportButton.setAttribute("download", (none ? "" : `CORDEX-${selection.NUTS_ID}.json`))
+    }
+
+    // Details: model bias
+
+    function initializeBiasScatter() {
+        const dataBias = [{
             type: "scatter",
-            x: [0],
-            y: [0],
+            x: [NaN],
+            y: [NaN],
             mode: "markers",
             name: "",
-            text: [model],
             hovertemplate: BIAS_HOVER_TEMPLATE,
-            marker: {
-                size: 12,
-                color: GCM_COLORS[model.gcm],
-                symbol: RCM_SYMBOLS[model.rcm]
-            },
-        }));
+        }];
         const layoutBias = {
             height: 600,
-            margin: {l: 100, r: 0},
+            margin: {l: 75, r: 25},
             xaxis: {
                 title: {text: getBiasLabel(BIAS_VAR_X)},
-                ticksuffix: getBiasTickSuffix(BIAS_VAR_X),
+                ticksuffix: getTickSuffix(BIAS_VAR_X, "bias"),
                 zeroline: true,
                 zerolinecolor: "black",
                 zerolinewidth: 2.0,
@@ -437,7 +525,7 @@ async function runBiasDashboard() {
             },
             yaxis: {
                 title: {text: getBiasLabel(BIAS_VAR_Y)},
-                ticksuffix: getBiasTickSuffix(BIAS_VAR_Y),
+                ticksuffix: getTickSuffix(BIAS_VAR_Y, "bias"),
                 zeroline: true,
                 zerolinecolor: "black",
                 zerolinewidth: 2.0,
@@ -446,117 +534,246 @@ async function runBiasDashboard() {
             },
             showlegend: false
         };
-        promises.push(
-            Plotly.newPlot(DOM.getNode("bias"), dataBias, layoutBias, config)
-        );
-        /* Placeholders for uncertainty plots
-        for (const variable of VARIABLES) {
-            const dataProj = MODELS.map(model => ({
-                type: "scatter",
-                x: [0],
-                y: [0],
-                name: "",
-                text: `${model.gcm} ${model.rcm}`,
-                marker: {size: 8, symbol: RCM_SYMBOLS[model.rcm]},
-                line: {width: 1.5, color: GCM_COLORS[model.gcm]},
-            }));
-            const layoutProj = {
-                height: 450,
-                margin: {l: 100, r: 0},
-                showlegend: false,
-                yaxis: {
-                    //title: {text: getProjLabel(variable)},
-                    ticksuffix: getProjTickSuffix(variable)
-                }
-            };
-            promises.push(
-                Plotly.newPlot(DOM.getNode(`uncertainty-${variable}`), dataProj, layoutProj, config)
-            );
-        }
-        */
-        return Promise.all(promises);
+        const config = {
+            responsive: true,
+            modeBarButtonsToRemove: ["select2d", "lasso2d"]
+        };
+        return Plotly.newPlot(DOM.getNode("bias"), dataBias, layoutBias, config);
     }
 
-    function updateDetails() {
-        if (selection == null) {
-            DOM.getNode("title").textContent = "no selection";
-            DOM.getNode("latin-name").textContent = "n/a";
-            DOM.getNode("nuts-id").textContent = "n/a";
+    function updateBiasScatter() {
+        if (selection == null || selection.data == null || selection.data.length == 0) {
             DOM.getNode("smallest-pr").textContent = "no selection";
             DOM.getNode("smallest-tas").textContent = "no selection";
             return;
         }
-        const promises = [];
-        const nutsID = selection.NUTS_ID;
-        const reference = DOM.getNode("reference").value;
-        const visible = selection.bias.map((model, i) => modelSelectionBoxes[i].checked);
         // Update bias scatter plot
         const dataBias = {
-            x: selection.bias.map(model => [model[BIAS_VAR_X].value]),
-            y: selection.bias.map(model => [model[BIAS_VAR_Y].value]),
-            visible: visible,
+            "x": [selection.data.map(d => d[BIAS_VAR_X].bias.value)],
+            "y": [selection.data.map(d => d[BIAS_VAR_Y].bias.value)],
+            "text": [selection.data.map(d => d.model)],
+            "marker.color": [selection.data.map(d => GCM_COLORS[d.model.gcm])],
+            "marker.symbol": [selection.data.map(d => RCM_SYMBOLS[d.model.rcm])],
+            "marker.size": 12,
         };
-        // Dynamic description/interpretation of bias plot
+        // Info box: models with smallest bias in each variable
         for (const v of VARIABLES) {
-            const [value, idx] = closestToZero(selection.bias.map((m, i) => (visible[i] ? m[v].value : NaN)));
+            const [value, idx] = closestToZero(selection.data.map(m => m[v].bias.value));
             if (!isFinite(value) || value == null) {
                 DOM.getNode(`smallest-${v}`).textContent = "no data";
             } else {
-                const model = MODELS[idx];
-                DOM.getNode(`smallest-${v}`).textContent = `GCM: ${model.gcm}, RCM: ${model.rcm}, Member: ${model.ens} (${value} ${getBiasUnit(v)})`;
+                const model = selection.data[idx].model;
+                DOM.getNode(`smallest-${v}`).textContent = `GCM: ${model.gcm}, RCM: ${model.rcm}, Member: ${model.ens} (${value} ${getUnit(v, "bias")})`;
             }
         }
-        //let recModel = null;
-        //selection.bias.forEach((model, i) => {
-        //    if (visible[i] && (recModel == null || model.rank < recModel.rank)) {
-        //        recModel = model;
-        //    }
-        //});
-        //if (recModel == null) {
-        //    DOM.getNode("details-rec-title").textContent = "Model recommendation";
-        //    DOM.getNode("details-rec-text").textContent = "no data available";
-        //} else {
-        //    DOM.getNode("details-rec-title").textContent = `Model recommendation based on bias against ${reference.toUpperCase()}`;
-        //    DOM.getNode("details-rec-text").textContent = `${recModel.model.gcm} ${recModel.model.rcm} ${recModel.model.ens}`;
-        //}
         const layoutBias = {
-            title: {text: `Model bias against ${reference.toUpperCase()}: ${selection.NUTS_NAME} (${nutsID})`}
+            title: {text: getBiasPlotTitle()}
         };
-        promises.push(
-            Plotly.update(DOM.getNode("bias"), dataBias, layoutBias)
-        );
-        // Generate text content
-        DOM.getNode("title").textContent = selection.NUTS_NAME;
-        DOM.getNode("latin-name").textContent = selection.NAME_LATN;
-        DOM.getNode("nuts-id").textContent = selection.NUTS_ID;
-        /* Update projection plumes
-        for (const variable of VARIABLES) {
-            const dataProj = {
-                x: selection.data.map(model => model.proj.time),
-                y: selection.data.map(model => model.proj[variable]),
-                visible: visible
-            };
-            const layoutProj = {
-                title: {text: `${getProjLabel(variable)}: ${selection.NUTS_NAME} (${nutsID})`}
-            };
-            promises.push(
-                Plotly.update(DOM.getNode(`uncertainty-${variable}`), dataProj, layoutProj)
-            );
-        }
-        */
-        // Offer selected data for download
-        const exportButton = DOM.getNode("export-json");
-        exportButton.setAttribute("href", "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(selection)));
-        exportButton.setAttribute("download", `CORDEX-${nutsID}.json`)
-        // Update plots
-        return Promise.all(promises);
+        return Plotly.update(DOM.getNode("bias"), dataBias, layoutBias);
     }
+
+    // Details: historical period percentiles
+
+    function initializePercentilesDetails() {
+        const config = {
+            responsive: true,
+            modeBarButtonsToRemove: ["select2d", "lasso2d"]
+        };
+        return Promise.all(VARIABLES.map((variable) => {
+            const data = [{
+                type: "heatmap",
+                name: "",
+                coloraxis: 'coloraxis',
+                hovertemplate: "Percentile: %{x}<br>Bias: %{z} " + getUnit(variable, "perc"),
+            }];
+            const layout = {
+                height: 600,
+                margin: {l: 0, r: 425},
+                coloraxis: {
+                    colorscale: COLORAXIS[variable].colorscale,
+                    cmin: COLORAXIS[variable].cmin,
+                    cmax: COLORAXIS[variable].cmax,
+                    showscale: false,
+                }
+            };
+            return Plotly.newPlot(DOM.getNode(`percentiles-${variable}`), data, layout, config);
+        }));
+    }
+
+    function updatePercentilesDetails() {
+        if (selection == null || selection.data == null || selection.data.length == 0) {
+            return; // TODO
+        }
+        return Promise.all(VARIABLES.map((variable) => {
+            const data = {
+                x: [selection.data[0][variable].perc.percentiles.map(p => `${p} %`)],
+                y: [selection.data.map(d => getStyledModelLabel(d.model))],
+                z: [selection.data.map(d => null2NaN(d[variable].perc.values))],
+                //texttemplate: "%{z}",
+            };
+            const layout = {
+                title: {text: getBiasPlotTitle()},
+                xaxis: {
+                    title: {text: "Percentile"},
+                    tickvals: META.percentiles,
+                },
+                yaxis: {
+                    side: "right",
+                },
+            }
+            return Plotly.update(DOM.getNode(`percentiles-${variable}`), data, layout);
+        }));
+    }
+
+    // Details: uncertainty
+
+    function initializeUncertaintyDetails() {
+        const config = {
+            responsive: true,
+            modeBarButtonsToRemove: ["select2d", "lasso2d"]
+        };
+        return Promise.all(VARIABLES.map(variable => {
+            const periods = META.variables[variable].proj.periods;
+            const periodTicks = periods.map(
+                // place at center of interval (assumes period values are "YYYY-YYYY")
+                p => 0.5 * (parseInt(p.substring(0, 4)) + parseInt(p.substring(p.length - 4)))
+            );
+            const data = [
+                {
+                    name: "",
+                    type: "scatter",
+                    mode: "lines",
+                    x: periodTicks,
+                    y: [NaN],
+                    line: {width: 1},
+                    hovertemplate: "%{y}<br>lower uncertainty range<br>%{x}",
+                },
+                {
+                    name: "",
+                    type: "scatter",
+                    mode: "lines",
+                    x: periodTicks,
+                    y: [NaN],
+                    fill: "tonexty",
+                    line: {width: 1},
+                    hovertemplate: "%{y}<br>upper uncertainty range<br>%{x}",
+                },
+                {
+                    name: "",
+                    type: "scatter",
+                    mode: "lines",
+                    x: periodTicks,
+                    y: [NaN],
+                    line: {dash: "dot", width: 3},
+                    hovertemplate: "%{y}<br>ensemble mean<br>%{x}"
+                },
+                {
+                    name: "",
+                    type: "scatter",
+                    mode: "lines+markers",
+                    x: periodTicks,
+                    y: periodTicks.map(_ => 0.),
+                    visible: false,
+                    marker: {size: 12},
+                }
+            ];
+            const layout = {
+                height: 400,
+                margin: {l: 100, r: 50},
+                showlegend: false,
+                yaxis: {
+                    title: {text: getProjLabel(variable)},
+                    ticksuffix: getTickSuffix(variable, "proj"),
+                },
+                xaxis: {
+                    tickmode: "array",
+                    tickvals: periodTicks,
+                    ticktext: periods,
+                }
+            };
+            return Plotly.newPlot(DOM.getNode(`uncertainty-${variable}`), data, layout, config);
+        }));
+    }
+
+    function updateUncertaintyDetails() {
+        if (selection == null || selection.data == null) {
+            return; // TODO
+        }
+        const scenario = DOM.getNode("scenario").value;
+        // ...
+        const centerNode = DOM.getNode("ensemble-center");
+        for (const option of centerNode.getElementsByTagName("option")) {
+            const idx = parseInt(option.value);
+            if (isNaN(idx)) {
+                continue;
+            }
+            option.disabled = !VARIABLES.every(v => {
+                const values = selection.data[idx][v][scenario].values;
+                return values != null && values.length > 1;
+            });
+            // Revert to safe option if current model doesn't have data
+            if (option.disabled && option.selected) {
+                centerNode.value = "ensmean";
+            }
+        }
+        // ...
+        const center = centerNode.value;
+        const member = (center == "none" || center == "ensmean") ? null : selection.data[parseInt(center)];
+        return Promise.all(VARIABLES.map(v => {
+            const ensValues = selection.data.map(model => model[v][scenario].values);
+            let ensMean = applyAlongEns(OPERATORS.mean, ensValues);
+            let ensMin = applyAlongEns(OPERATORS.minimum, ensValues);
+            let ensMax = applyAlongEns(OPERATORS.maximum, ensValues);
+            // Determine center
+            let centerValues = null;
+            if (member != null) {
+                centerValues = member[v][scenario].values;
+            } else if (center === "none") {
+                centerValues = Array(selection.data.length).fill(0.);
+            } else if (center === "ensmean") {
+                centerValues = ensMean;
+            } else {
+                return; // TODO
+            }
+            ensMin = ensMin.map((x, i) => x - centerValues[i]);
+            ensMax = ensMax.map((x, i) => x - centerValues[i]);
+            ensMean = ensMean.map((x, i) => x - centerValues[i]);
+            const primaryColor = (member == null) ? "black" : GCM_COLORS[member.model.gcm];
+            const dataEns = {
+                "y": [ensMin, ensMax, ensMean],
+                "line.color": [primaryColor, primaryColor, "black"],
+                "fillcolor": lightenColor(primaryColor)
+            };
+            const layout = {
+                title: {text: (
+                    `${getProjLabel(v)} projection uncertainty<br>` +
+                    `${selection.NUTS_NAME} (${selection.NUTS_ID})`
+                )
+                }
+            };
+            const dataMem = {visible: (member != null)};
+            if (member != null) {
+                dataMem["line.color"] = primaryColor;
+                dataMem["marker.symbol"] = RCM_SYMBOLS[member.model.rcm];
+                dataMem["hovertemplate"] = (
+                    `<b>GCM:</b> ${member.model.gcm}<br>` +
+                    `<b>RCM:</b> ${member.model.rcm}<br>` +
+                    `<b>ENS:</b> ${member.model.ens}<br>`
+                );
+            }
+            return Promise.all([
+                Plotly.update(DOM.getNode(`uncertainty-${v}`), dataEns, layout, [0, 1, 2]),
+                Plotly.restyle(DOM.getNode(`uncertainty-${v}`), dataMem, [3]),
+            ]);
+        }));
+    }
+
 
     // GUI functions
 
     function generateVariableSelection(node) {
         for (let v of VARIABLES) {
-            const label = capitalizeFirst(ATTRS[v].name);
+            const label = getVarName(v);
             node.appendChild(DOM.newNode("option", {"value": v}, [`${label} bias`]));
         }
         node.value = DEFAULT_MAP_VAR;
@@ -578,27 +795,35 @@ async function runBiasDashboard() {
         node.value = DEFAULT_REFERENCE;
     }
 
+    function generateScenarioSelection(node) {
+        for (let rcp in SCENARIOS) {
+            node.appendChild(DOM.newNode("option", {"value": rcp}, [SCENARIOS[rcp]]));
+        }
+        node.value = DEFAULT_SCENARIO;
+    }
+
     // Initialisation: generate model selection dialogue with all
     // models selected by default
     const modelSelectionBoxes = [];
     function generateModelSelection() {
         const modelSelection = DOM.getNode("models");
         let fieldset = null;
-        for (let i = 0; i < MODELS.length; i++) {
-            const model = MODELS[i];
-            if (i == 0 || MODELS[i-1].gcm != model.gcm) {
+        for (let i = 0; i < META.models.length; i++) {
+            const model = META.models[i];
+            if (i == 0 || META.models[i-1].gcm != model.gcm) {
                 fieldset = DOM.newNode("fieldset", null, [
                     DOM.newNode("legend", {style: `color: ${GCM_COLORS[model.gcm]}`}, [model.gcm])
                 ]);
                 modelSelection.appendChild(fieldset);
             }
             const input = DOM.newNode("input", {"type": "checkbox", "checked": "checked"});
-            input.addEventListener("change", () => {
+            input.addEventListener("change", async () => {
                 updateMapValues();
+                await refreshData();
                 updateDetails();
             });
             fieldset.appendChild(DOM.newNode("label", null, [
-                input, " ", model.rcm, DOM.newNode("span", {"class": "ens-name"}, " (" + model.ens + ")")
+                input, " ", model.rcm, DOM.newNode("span", {"style": "color:#999;"}, " (" + model.ens + ")")
             ]));
             modelSelectionBoxes[i] = input;
         }
@@ -641,13 +866,14 @@ async function runBiasDashboard() {
         await selectData(nutsID);
         updateMapSelection();
         updateDetails();
-        DOM.scrollTo("details-anchor");
+        DOM.scrollTo("title");
     }
 
     // Populate GUI
     generateVariableSelection(DOM.getNode("variable"));
     generateOperatorSelection(DOM.getNode("operator"));
     generateReferenceSelection(DOM.getNode("reference"));
+    generateScenarioSelection(DOM.getNode("scenario"));
     generateModelSelection();
     // Create empty map and details plots
     await Promise.all([
@@ -660,7 +886,6 @@ async function runBiasDashboard() {
     const loadFromHash = window.location.hash.substring(1);
     if (loadFromHash.length > 0) {
         await selectData(loadFromHash);
-        //DOM.scrollTo("details-anchor");
     }
     updateDetails();
     updateMapSelection();
@@ -680,6 +905,7 @@ async function runBiasDashboard() {
         // The reference selector of the map also controls the reference
         // for the bias section in the details
         await refreshData();
+        updateBiasScatter();
         updateDetails();
     });
     DOM.getNode("autoscale").addEventListener("change", updateMapValues);
@@ -692,6 +918,9 @@ async function runBiasDashboard() {
     DOM.getNode("search-input").addEventListener("blur", (e) => {
         DOM.getNode("search-dropdown").style.display = "none";
     });
+    // Details controls
+    DOM.getNode("scenario").addEventListener("change", updateUncertaintyDetails);
+    DOM.getNode("ensemble-center").addEventListener("change", updateUncertaintyDetails);
 }
 
 document.addEventListener("DOMContentLoaded", runBiasDashboard);

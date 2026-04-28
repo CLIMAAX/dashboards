@@ -18,14 +18,18 @@
         <div class="links">
             <a href="https://www.climaax.eu"><img src="assets/climaax.png" alt="CLIMAAX"></a>
         </div>
-        <div class="search">
+        <div class="spacer"></div>
+        <div class="selectors">
             <div id="dashboard-search">
-                <input type="text" id="dashboard-search-input" placeholder="select a region to see details">
+                <input type="text" id="dashboard-search-input">
                 <div id="dashboard-search-dropdown" style="display: none;">
                     <div id="dashboard-search-results"></div>
                 </div>
             </div>
         </div>
+        <div class="spacer"></div>
+        <div><select id="dashboard-reference"></select></div>
+        <div class="spacer"></div>
         <div class="links">
             <a href="https://github.com/CLIMAAX/dashboards"><img src="assets/github.svg" alt="GitHub"></a>
         </div>
@@ -35,10 +39,9 @@
         <div id="dashboard-map"></div>
         <div id="dashboard-models">
         <fieldset id="dashboard-controls">
-            <legend>Settings</legend>
+            <legend>Map settings</legend>
             <select id="dashboard-variable"></select>
             <select id="dashboard-operator"></select>
-            <select id="dashboard-reference"></select>
             <label title="Let the colorbar range adjust to the data. Avoids clipping of data but removes comparability between different maps for the same variable.">
                 <input type="checkbox" id="dashboard-autoscale">
                 autoscale colorbar
@@ -47,18 +50,20 @@
         </div>
     </div>
 
-    <div class="details" id="dashboard-details-anchor">
-        <div>
-            <h1 id="dashboard-title">no selection</h1>
-            <p>
-                Download data for <span id="dashboard-latin-name"></span> (<span id="dashboard-nuts-id"></span>) as:
-                <a id="dashboard-export-json">JSON</a>
-            </p>
-        </div>
+    <div class="details" id="dashboard-details">
+        <h1 id="dashboard-title">no selection</h1>
+        <p>
+            Download data for <span id="dashboard-latin-name"></span> (<span id="dashboard-nuts-id"></span>) as:
+            <a id="dashboard-export-json">JSON</a>
+        </p>
+    </div>
 
+    <details open>
+        <summary>
+            <h2>Model Bias</h2>
+        </summary>
         <div class="side-by-side">
-            <div class="side-text">
-                <h2>Model Bias</h2>
+            <div class="left fixed">
                 <p>
                     The bias represents the difference between the observed climate and the model representation over the historical record.
                 </p>
@@ -74,51 +79,115 @@
                     The user is referred to <a href="https://doi.org/10.1029/2019JD032344">Vautard et al. (2021)</a> for further reading on EURO-CORDEX bias.
                 </p>
             </div>
-            <div id="dashboard-bias" class="side-plot"></div>
+            <div id="dashboard-bias" class="right expand"></div>
         </div>
         <div class="note">
             <h3>Models with smallest bias in each variable</h3>
             <p><strong>Temperature:</strong> <span id="dashboard-smallest-tas">no selection</span></p>
             <p><strong>Precipitation:</strong> <span id="dashboard-smallest-pr">no selection</span></p>
         </div>
+    </details>
 
-        <div class="side-by-side">
-            <div>
-                <h2>Model uncertainty</h2>
-                <p>Coming soon...</p>
-            </div>
+    <details>
+        <summary>
+            <h2>Model Bias: Temperature Percentiles</h2>
+        </summary>
+        <p>
+            The temperature bias shown in the figures above is the bias of the mean temperature over the 1971-2000 period.
+            While this is a good summary-indicator of model bias, it is not necessarily a good indicator of model bias for extreme events.
+            However, the extremes of the temperature distribution are often the most relevant when analysing model projections in the context of climate risk assessment.
+        </p>
+        <p>
+            Here, the biases of each model are shown for individual percentiles of the temperature distribution.
+            Each row of the plot represents one model, the color represents the bias (<span style="color:#c03438;">red: model has warm bias</span>, <span style="color:#1d5da0;">blue: model has cold bias</span>; hover to see the values).
+            The low percentiles of the distribution correspond to cold extremes, while high percentiles of the distribution correspond to warm extremes.
+        </p>
+        <div id="dashboard-percentiles-tas"></div>
+        <div class="note">
+            <h3>How to read the patterns: two examples</h3>
+            <p>
+                If a row is all the same color, the model has a consistent bias across all values.
+                E.g., if everything is blue, the model is always too cold.
+            </p>
+            <p>
+                If a row starts red and transitions to blue for the high percentiles, the model has less temperature variability than the reference dataset.
+                Cold extremes are warmer than they should be, warm extremes are colder than they should be.
+            </p>
         </div>
+    </details>
 
-        <!--
-        <div class="side-by-side">
-            <div class="side-text">
-                <h2>Uncertainty: Temperature</h2>
-                <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
-                <p>TODO: data shown is random.</p>
-            </div>
-            <div id="dashboard-uncertainty-tas" class="side-plot"></div>
+    <details>
+        <summary>
+            <h2>Model Bias: Precipitation Percentiles</h2>
+        </summary>
+        <p>
+            The precipitation bias shown in the figures above is the bias of the mean yearly total precipitation over the 1971-2000 period.
+            While this is a good summary-indicator of model bias, it is not necessarily a good indicator of model bias for extreme events.
+            However, the extremes of the precipitation distribution are often the most relevant when analysing model projections in the context of climate risk assessment.
+        </p>
+        <p>
+            Here, the biases of each model are shown for individual percentiles of the yearly total precipitation distribution.
+            Each row of the plot represents one model, the color represents the bias (<span style="color:#015a50;">green: model has wet bias</span>, <span style="color:#824b09;">brown: model has dry bias</span>; hover to see the values).
+            The high percentiles of the distribution correspond to heavy precipitation extremes.
+        </p>
+        <div id="dashboard-percentiles-pr"></div>
+        <div class="note">
+            <h3>Precipitation bias as percentage</h3>
+            <p>
+                The precipitation bias is given as a percentage of the reference precipitation (relative bias).
+                Values indicating dry bias are limited to at most -100%, where the model predicts no precipitation at all.
+                In contrast, the percentages for wet biases are not limited and can exceed 100%.
+                If there is no or only very little precipitation in a reference percentile, the bias percentage becomes very large even for small model biases in absolute terms.
+                Examples for these limitations can be seen, e.g., in the low percentiles for Cyprus (CY00).
+            </p>
         </div>
+    </details>
 
+    <details open>
+        <summary>
+            <h2>Model Uncertainty</h2>
+        </summary>
+        <p>
+            The <em>model bias</em> can only be evaluated for the past, where a reference dataset for comparison is available.
+            A measure of <em>model uncertainty</em>, the variability of possible outcomes predicted for the future climate, is obtained by comparing the models to each other within the ensemble without a reference dataset.
+            Generally, the more models are involved in the comparison, the more reliable the estimate of uncertainty becomes.
+        </p>
+        <p>
+            Model uncertainty is here represented by the spread of the model ensemble relative to the ensemble mean an individual model projection or in absolute terms (select with the dropdown below).
+            The range between the most extreme predictions of the ensemble is a simple measure of the uncertainty.
+            The position of a selected reference model within that range tells us on which side of the values we can expect more uncertainty.
+            For example, a model in the lower part of the temperature uncertainty range has more uncertainty towards warmer temperatures than colder temperatures.
+        </p>
+        <p>
+            The average uncertainty range was evaluated for temperature and precipitation over the historical (1986-2005) and four future time periods (2021-2040, 2041-2060, 2061-2080, and 2081-2100) based on monthly data without bias correction for the NUTS2 regions and for three RCP scenarios (select below; not all models available for all scenarios).
+        </p>
+        <p>
+            <strong>Scenario</strong> <select id="dashboard-scenario"></select>
+            <strong>Show the uncertainty range relative to</strong> <select id="dashboard-ensemble-center">
+                <option>ensemble mean</option>
+            </select>
+        </p>
         <div class="side-by-side">
-            <div class="side-text">
-                <h2>Uncertainty: Precipitation</h2>
-                <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
-                <p>TODO: data shown is random.</p>
-            </div>
-            <div id="dashboard-uncertainty-pr" class="side-plot"></div>
+            <div id="dashboard-uncertainty-tas" class="left equal"></div>
+            <div id="dashboard-uncertainty-pr" class="right equal"></div>
         </div>
-        -->
-    </div>
-    <div class="footer">
-        <p><a href="javascript:document.getElementById('dashboard-search').scrollIntoView({behavior:'smooth'});">back to top</a></p>
-    </div>
+        <div class="note">
+            <h3>Model bias dominates the uncertainty</h3>
+            <p>
+                There is a general tendency for the uncertainty to increase as the projections go into the future, but the uncertainty range is already large for the historical period.
+                This implies that a large contribution to the model uncertainty comes from the biases of the models between each other.
+            </p>
+        </div>
+    </details>
+
     <div class="credits">
         <p>
-            <a href="https://orcid.org/0000-0002-5022-1026">Majid Niazkar <img alt="ORCID iD icon" src="https://orcid.org/sites/default/files/images/orcid_16x16.png"></a> and
-            <a href="https://orcid.org/0009-0002-0611-6170">Andrea Rivosecchi <img alt="ORCID iD icon" src="https://orcid.org/sites/default/files/images/orcid_16x16.png"></a>
+            <a href="https://orcid.org/0000-0002-5022-1026">Majid Niazkar <img alt="ORCID iD icon" src="https://orcid.org/sites/default/files/images/orcid_16x16.png"></a>,
+            <a href="https://orcid.org/0009-0002-0611-6170">Andrea Rivosecchi <img alt="ORCID iD icon" src="https://orcid.org/sites/default/files/images/orcid_16x16.png"></a> and
+            <a href="https://orcid.org/0009-0009-7492-9940">Lisa Ferrari <img alt="ORCID iD icon" src="https://orcid.org/sites/default/files/images/orcid_16x16.png"></a>
         </p>
         <p class="acknowledgements">
-            The authors acknowledge contributions from <a href="https://orcid.org/0000-0001-7037-5164">Muhammad Faizan Aslam <img alt="ORCID iD icon" src="https://orcid.org/sites/default/files/images/orcid_16x16.png"></a> and <a href="https://orcid.org/0009-0009-7492-9940">Lisa Ferrari <img alt="ORCID iD icon" src="https://orcid.org/sites/default/files/images/orcid_16x16.png"></a> for help with data processing.
+            The authors acknowledge contributions from <a href="https://orcid.org/0000-0001-7037-5164">Muhammad Faizan Aslam <img alt="ORCID iD icon" src="https://orcid.org/sites/default/files/images/orcid_16x16.png"></a> for help with data processing.
         </p>
         <p><a href="https://www.cmcc.it/"><img src="assets/cmcc.png" height="24"></a></p>
     </div>
